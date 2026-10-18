@@ -3,6 +3,8 @@
 (() => {
   'use strict';
 
+  // Mission copy and pseudocode are display/configuration data. The simulation
+  // below reads only the named settings it needs; it never executes this text.
   const missions = [
     {
       id: 'stack',
@@ -95,6 +97,8 @@
   }
 
   function parseByteSettings(source, mission = activeMission) {
+    // Keep the editable code pad intentionally small: recognize a buffer size
+    // and a boolean check, rather than evaluating arbitrary student code.
     const bufferMatch = source.match(/\bchar\s+([A-Za-z_]\w*)\s*\[\s*(\d+)\s*\]/i);
     const checkMatch = source.match(/\bCHECK_LENGTH\s*=\s*(true|false)\b/i);
     if (!bufferMatch || !checkMatch) {
@@ -108,6 +112,8 @@
   }
 
   function parseUafSettings() {
+    // The lifetime lab has one supported switch, parsed as data just like the
+    // byte labs' bounds-check setting.
     const source = codeEditorUaf.value;
     const clearMatch = source.match(/\bCLEAR_POINTER\s*=\s*(true|false)\b/i);
     if (!clearMatch) return { valid: false, error: 'Keep a CLEAR_POINTER = true/false line in the code pad.' };
@@ -118,14 +124,22 @@
     const indicator = $('#mode-indicator');
     indicator.classList.toggle('mode-patched', checked && !invalid);
     indicator.classList.toggle('mode-vulnerable', !checked && !invalid);
-    $('#mode-label').textContent = invalid ? 'CHECK CODE SETTINGS' : checked ? 'PATCHED VERSION' : 'VULNERABLE VERSION';
+    const label = invalid ? 'Check code settings' : checked ? 'Patched version' : 'Vulnerable version';
+    $('#mode-label').textContent = label.toUpperCase();
+    $('#code-summary-status').textContent = label;
+    $('#code-summary-status').classList.toggle('is-patched', checked && !invalid);
+    $('#code-summary-status').classList.toggle('is-invalid', invalid);
   }
 
   function setUafModeIndicator(checked, invalid = false) {
     const indicator = $('#uaf-mode-indicator');
     indicator.classList.toggle('mode-patched', checked && !invalid);
     indicator.classList.toggle('mode-vulnerable', !checked && !invalid);
-    $('#uaf-mode-label').textContent = invalid ? 'CHECK CODE SETTINGS' : checked ? 'PATCHED VERSION' : 'VULNERABLE VERSION';
+    const label = invalid ? 'Check code settings' : checked ? 'Patched version' : 'Vulnerable version';
+    $('#uaf-mode-label').textContent = label.toUpperCase();
+    $('#uaf-code-summary-status').textContent = label;
+    $('#uaf-code-summary-status').classList.toggle('is-patched', checked && !invalid);
+    $('#uaf-code-summary-status').classList.toggle('is-invalid', invalid);
   }
 
   function updateModePreview() {
@@ -185,9 +199,9 @@
     $('#mission-complete-banner').hidden = !complete;
     renderMissionList();
     if (missions.every((mission) => progress[mission.id].sawBug && progress[mission.id].testedFix)) {
-      $('#mission-complete-banner').querySelector('small').textContent = 'All three simulations are patched. Nice work protecting the boundaries and lifetimes.';
+      $('#mission-complete-banner').querySelector('small').textContent = 'All three labs complete. Nice work protecting memory boundaries and lifetimes.';
     } else {
-      $('#mission-complete-banner').querySelector('small').textContent = 'You showed the bug and verified the fix. Pick another lab when you’re ready.';
+      $('#mission-complete-banner').querySelector('small').textContent = 'You showed the bug and verified the fix.';
     }
   }
 
@@ -230,6 +244,8 @@
     const found = missions.find((mission) => mission.id === id);
     if (!found) return;
     activeMission = found;
+    $('#code-details').open = false;
+    $('#uaf-code-details').open = false;
     updateMissionCopy();
     renderMissionList();
     const isUaf = activeIsUaf();
@@ -251,6 +267,7 @@
   function createCell(label, index, value, neighbor, overflow) {
     const cell = document.createElement('div');
     cell.className = `memory-cell${neighbor ? ' neighbor' : ''}${value !== 0 ? ` written${overflow ? ' overflow-write' : ''}` : ''}`;
+    cell.style.setProperty('--stagger', `${Math.min(index, 19) * 30}ms`);
     cell.setAttribute('aria-label', `${label}, byte ${index}, value ${value.toString(16).padStart(2, '0')}`);
     const top = document.createElement('span');
     top.className = 'memory-cell-label';
@@ -266,6 +283,8 @@
   }
 
   function renderMemory(config, byteRun = latestByteRun) {
+    // Rebuild a bounded visual snapshot: the chosen buffer plus four nearby
+    // cells. These DOM cells represent model values, never process memory.
     const host = $('#memory-map');
     host.replaceChildren();
     const capacity = Math.max(1, Math.min(16, config.capacity || activeMission.capacity));
@@ -313,11 +332,15 @@
     const config = parseByteSettings(codeEditor.value);
     setByteModeIndicator(config.checked, !config.valid);
     if (!config.valid) {
+      $('#code-details').open = true;
       latestByteRun = null;
       renderMemory({ buffer: activeMission.buffer, capacity: activeMission.capacity, neighbor: activeMission.neighbor });
       setResult($('#result-box'), 'danger', 'CODE SETTINGS NOT RECOGNIZED', config.error, 'NO MEMORY CHANGED', '⌕');
       return;
     }
+    // UTF-8 byte count makes the boundary meaningful for non-ASCII input too.
+    // A checked copy rejects the whole input; an unchecked copy only updates
+    // this capped teaching snapshot and cannot write outside the page model.
     const bytes = Array.from(new TextEncoder().encode(payloadInput.value));
     const overflowCount = Math.max(0, bytes.length - config.capacity);
     const blocked = config.checked && overflowCount > 0;
@@ -363,6 +386,8 @@
   }
 
   function loadByteDemo(checkLength) {
+    // Facilitator presets change the same editable setting and use the normal
+    // student-facing simulation path, so the demonstration stays comparable.
     const expected = activeMission;
     codeEditor.value = expected.code;
     codeEditor.value = codeWithSetting(codeEditor.value, 'CHECK_LENGTH', checkLength);
@@ -373,6 +398,8 @@
   }
 
   function loadUafDemo(clearPointer) {
+    // Run the four fixed timeline steps through the ordinary transition logic
+    // so facilitator presets produce the same outcome as manual stepping.
     codeEditorUaf.value = activeMission.code;
     codeEditorUaf.value = codeWithSetting(codeEditorUaf.value, 'CLEAR_POINTER', clearPointer);
     timelineStep = 0;
@@ -399,6 +426,8 @@
   }
 
   function renderUafTimeline() {
+    // This is a fixed teaching story with a fictional address and objects;
+    // rendering it never allocates, frees, or dereferences real memory.
     const timeline = $('#uaf-timeline');
     timeline.replaceChildren();
     const labels = [
@@ -467,6 +496,7 @@
     const settings = parseUafSettings();
     setUafModeIndicator(settings.clearsPointer, !settings.valid);
     if (!settings.valid) {
+      $('#uaf-code-details').open = true;
       setTextResultForInvalidUaf(settings.error);
       return;
     }
@@ -522,6 +552,8 @@
   $('#run-button').addEventListener('click', runByteSimulation);
   payloadInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') runByteSimulation(); });
   $('#clear-button').addEventListener('click', resetByteLab);
+  $('#fill-edge').addEventListener('click', () => fillPayloadToLimit(false));
+  $('#fill-overflow').addEventListener('click', () => fillPayloadToLimit(true));
   $('#uaf-next').addEventListener('click', advanceUafTimeline);
   $('#uaf-reset').addEventListener('click', resetUafTimeline);
   $('#facilitator-toggle').addEventListener('click', (event) => {
@@ -548,6 +580,54 @@
       updateModePreview();
     }
   });
+  $('#next-lab-button').addEventListener('click', () => {
+    const index = missions.findIndex((mission) => mission.id === activeMission.id);
+    setMission(missions[(index + 1) % missions.length].id);
+  });
+
+  function fillPayloadToLimit(addExtraByte) {
+    const settings = parseByteSettings(codeEditor.value);
+    if (!settings.valid) {
+      $('#code-details').open = true;
+      setResult($('#result-box'), 'danger', 'CHECK THE CODE SETTINGS', settings.error, 'NO MEMORY CHANGED', '⌕');
+      codeEditor.focus();
+      return;
+    }
+    payloadInput.value = 'A'.repeat(settings.capacity + (addExtraByte ? 1 : 0));
+    payloadInput.dispatchEvent(new Event('input', { bubbles: true }));
+    payloadInput.focus();
+  }
+
+  const motionToggle = $('#motion-toggle');
+  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  // Remember only the motion preference in this browser. Lab progress and
+  // workshop inputs remain in memory for the current page session.
+  function savedMotionPreference() {
+    try { return window.localStorage.getItem('bytesafe-motion'); }
+    catch { return null; }
+  }
+  let motionEnabled = savedMotionPreference() === 'on' ? true : savedMotionPreference() === 'off' ? false : !reducedMotionQuery.matches;
+  function applyMotionPreference() {
+    document.body.classList.toggle('motion-off', !motionEnabled);
+    document.body.classList.toggle('motion-on', motionEnabled);
+    motionToggle.setAttribute('aria-pressed', String(motionEnabled));
+    $('#motion-label').textContent = motionEnabled ? 'Motion on' : 'Motion off';
+    motionToggle.title = motionEnabled ? 'Turn interface animations off' : 'Turn interface animations on';
+  }
+  motionToggle.addEventListener('click', () => {
+    motionEnabled = !motionEnabled;
+    try { window.localStorage.setItem('bytesafe-motion', motionEnabled ? 'on' : 'off'); } catch { /* Preference stays in memory if storage is unavailable. */ }
+    applyMotionPreference();
+  });
+  if (typeof reducedMotionQuery.addEventListener === 'function') {
+    reducedMotionQuery.addEventListener('change', (event) => {
+      if (savedMotionPreference() === null) {
+        motionEnabled = !event.matches;
+        applyMotionPreference();
+      }
+    });
+  }
+  applyMotionPreference();
 
   renderMissionList();
   updateMissionCopy();

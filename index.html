@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#071311" />
+    <meta name="theme-color" content="#f6f7f4" />
     <meta name="description" content="A hands-on, browser-only memory safety workshop game. Explore simulated bugs, then patch them." />
     <title>ByteSafe Lab — Memory Safety Workshop</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
@@ -18,25 +18,22 @@
           <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
           <span>BYTE<span class="brand-slash">/</span>SAFE</span>
         </a>
-        <div class="topbar-center"><span class="live-dot"></span> WORKSHOP SIMULATOR <span class="topbar-divider">/</span> MEMORY SAFETY</div>
+        <div class="topbar-center"><span class="live-dot"></span> WORKSHOP · MEMORY SAFETY</div>
         <div class="topbar-actions">
-          <span class="simulation-chip"><span aria-hidden="true">◉</span> SIMULATION ONLY</span>
+          <span class="simulation-chip"><span aria-hidden="true">◉</span> Browser-only lab</span>
           <button class="facilitator-toggle" id="facilitator-toggle" type="button" aria-expanded="false" aria-controls="facilitator-panel">
-            <span class="facilitator-icon" aria-hidden="true">▤</span><span>Facilitator desk</span><span class="chevron" aria-hidden="true">⌄</span>
+            <span class="facilitator-icon" aria-hidden="true">▤</span><span>Facilitator</span><span class="chevron" aria-hidden="true">⌄</span>
           </button>
+          <button class="motion-toggle" id="motion-toggle" type="button" aria-label="Toggle interface animations" aria-pressed="true" title="Turn interface animations on or off"><span aria-hidden="true">◌</span><span id="motion-label">Motion on</span></button>
         </div>
       </header>
 
       <main id="main">
         <section class="intro-row" aria-labelledby="page-title">
           <div class="intro-copy">
-            <div class="eyebrow"><span class="eyebrow-line"></span> THE MEMORY SAFETY ARCADE <span class="eyebrow-index">NO. 01—03</span></div>
-            <h1 id="page-title">One extra byte<span class="title-period">.</span><br /><span class="title-muted">A device can change.</span></h1>
-            <p>Explore a tiny memory bug, watch its simulated effect, then change the code and stop it. Your lab is the browser; the devices are imaginary.</p>
-          </div>
-          <div class="intro-stamp" aria-label="Three interactive missions">
-            <div class="stamp-ring"><span class="stamp-number">03</span><span class="stamp-label">LABS</span></div>
-            <span class="stamp-caption">FIND THE BUG<br />PATCH THE BUG</span>
+            <div class="eyebrow"><span class="eyebrow-line"></span> MEMORY SAFETY WORKSHOP <span class="eyebrow-index">THREE SHORT LABS</span></div>
+            <h1 id="page-title">Explore the boundary<span class="title-period">.</span><br /><span class="title-muted">Then fix it.</span></h1>
+            <p>Try a simulated bug, inspect what changed in memory, then edit the code to patch it. No real devices are connected.</p>
           </div>
         </section>
 
@@ -56,7 +53,7 @@
 
         <div class="workspace-grid">
           <nav class="mission-rail" aria-label="Workshop missions">
-            <div class="rail-heading"><span>MISSION SELECT</span><span class="rail-count" id="mission-count">01 / 03</span></div>
+            <div class="rail-heading"><span>Labs</span><span class="rail-count" id="mission-count">01 / 03</span></div>
             <div class="mission-list" id="mission-list"></div>
             <div class="rail-progress">
               <div class="progress-top"><span>PATCHES APPLIED</span><b id="progress-label">0 / 3</b></div>
@@ -70,23 +67,27 @@
             <div class="mission-heading">
               <div class="mission-meta"><span id="mission-kicker">LAB 01 <span class="meta-slash">/</span> STACK OVERFLOW</span><span class="level-pill" id="level-pill">STARTER</span></div>
               <div class="mission-title-row"><div><h2 id="mission-title">Smart lock access panel</h2><p id="mission-description">An 8-byte username sits next to an access flag. What happens when the input is one byte too long?</p></div><span class="mission-icon" id="mission-icon" aria-hidden="true">⌑</span></div>
-              <div class="objective"><span class="objective-icon" aria-hidden="true">◎</span><span><b>YOUR OBJECTIVE</b><span id="mission-objective">Trigger the simulated overflow, then add a bounds check and prove it blocks the same input.</span></span></div>
+              <div class="objective"><span class="objective-icon" aria-hidden="true">◎</span><span><b>GOAL</b><span id="mission-objective">Trigger the simulated overflow, then add a bounds check and prove it blocks the same input.</span></span></div>
             </div>
 
             <article class="workbench card-surface" aria-label="Interactive code and memory simulator">
               <div class="workbench-topline"><div class="workbench-label"><span class="terminal-dot"></span> CODE WORKBENCH <span class="workbench-sep">/</span> <span id="code-language">SAFE PSEUDOCODE</span></div><span class="mode-indicator mode-vulnerable" id="mode-indicator"><span class="mode-dot"></span><span id="mode-label">VULNERABLE VERSION</span></span></div>
-              <div class="code-editor-wrap">
-                <div class="code-gutter" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span><span class="code-cursor">▍</span></div>
-                <label class="visually-hidden" for="code-editor">Edit the safe pseudocode settings for this simulation</label>
-                <textarea id="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="code-help"></textarea>
-                <div class="code-stamp" aria-hidden="true">EDIT<br />ME</div>
-              </div>
-              <div class="code-underbar"><span id="code-help">Edit the values, then run. Only the shown lab settings are read; this is not a code execution environment.</span><span class="code-safe"><span>●</span> NO EVAL</span></div>
+              <details class="code-details" id="code-details">
+                <summary><span class="code-summary-title"><span class="code-summary-icon" aria-hidden="true">{ }</span> Edit the code</span><span class="code-summary-status" id="code-summary-status">Vulnerable version</span></summary>
+                <div class="code-editor-wrap">
+                  <div class="code-gutter" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span><span class="code-cursor">▍</span></div>
+                  <label class="visually-hidden" for="code-editor">Edit the safe pseudocode settings for this simulation</label>
+                  <textarea id="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="code-help"></textarea>
+                  <div class="code-stamp" aria-hidden="true">EDIT<br />ME</div>
+                </div>
+                <div class="code-underbar"><span id="code-help">Change a value, then run. This editor only reads the lab settings shown here.</span><span class="code-safe"><span>●</span> SAFE EDITOR</span></div>
+              </details>
 
               <div class="input-section">
-                <div class="input-heading"><label for="payload-input"><span class="input-label-number">A</span> TEST INPUT <span class="input-hint">Type a payload for the simulated device</span></label><span id="byte-count" class="byte-count">0 BYTES</span></div>
+                <div class="input-heading"><label for="payload-input">Try an input <span class="input-hint">Type a value or use a quick fill</span></label><span id="byte-count" class="byte-count">0 BYTES</span></div>
                 <div class="input-control"><span class="input-prompt" aria-hidden="true">&gt;_</span><input id="payload-input" type="text" maxlength="32" placeholder="Try 9 A's…" autocomplete="off" autocapitalize="off" spellcheck="false" /><button class="run-button" id="run-button" type="button"><span>Run simulation</span><span class="run-arrow" aria-hidden="true">↗</span></button></div>
-                <div class="input-footer"><span>ASCII characters use 1 byte. Non-ASCII input is counted as UTF-8.</span><button type="button" class="text-button" id="clear-button">Clear input <span aria-hidden="true">×</span></button></div>
+                <div class="input-footer"><span>ASCII characters use 1 byte; other text is counted as UTF-8.</span><button type="button" class="text-button" id="clear-button">Clear</button></div>
+                <div class="payload-actions"><button type="button" class="quick-fill" id="fill-edge">Fill to buffer limit</button><button type="button" class="quick-fill" id="fill-overflow">Add one extra byte <span aria-hidden="true">→</span></button></div>
               </div>
 
               <div class="memory-section">
@@ -99,27 +100,30 @@
                 <div class="result-icon" id="result-icon" aria-hidden="true">⌁</div><div class="result-copy"><span class="result-eyebrow" id="result-eyebrow">READY WHEN YOU ARE</span><p id="result-message">Run an input to see how this version of the code behaves.</p></div><span class="result-tag" id="result-tag">AWAITING INPUT</span>
               </div>
 
-              <div class="workbench-bottom"><span><span class="tiny-shield" aria-hidden="true">⬡</span> SIMULATED BYTES ONLY</span><span>NO API CALLS <i>·</i> NO HARDWARE ACCESS</span></div>
+              <div class="workbench-bottom"><span>Simulation only</span><span>No device access</span></div>
             </article>
 
             <section class="uaf-workbench card-surface" id="uaf-workbench" hidden aria-label="Stale pointer timeline simulator">
               <div class="workbench-topline"><div class="workbench-label"><span class="terminal-dot"></span> POINTER TIMELINE <span class="workbench-sep">/</span> <span>SAFE PSEUDOCODE</span></div><span class="mode-indicator mode-vulnerable" id="uaf-mode-indicator"><span class="mode-dot"></span><span id="uaf-mode-label">VULNERABLE VERSION</span></span></div>
-              <div class="code-editor-wrap uaf-code-wrap"><div class="code-gutter" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div><label class="visually-hidden" for="uaf-code-editor">Edit the safe pseudocode settings for the pointer simulation</label><textarea id="uaf-code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="uaf-code-help"></textarea><div class="code-stamp" aria-hidden="true">EDIT<br />ME</div></div>
-              <div class="code-underbar"><span id="uaf-code-help">Change CLEAR_POINTER to true, then rerun the timeline to compare.</span><span class="code-safe"><span>●</span> NO EVAL</span></div>
+              <details class="code-details" id="uaf-code-details">
+                <summary><span class="code-summary-title"><span class="code-summary-icon" aria-hidden="true">{ }</span> Edit the code</span><span class="code-summary-status" id="uaf-code-summary-status">Vulnerable version</span></summary>
+                <div class="code-editor-wrap uaf-code-wrap"><div class="code-gutter" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div><label class="visually-hidden" for="uaf-code-editor">Edit the safe pseudocode settings for the pointer simulation</label><textarea id="uaf-code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="uaf-code-help"></textarea><div class="code-stamp" aria-hidden="true">EDIT<br />ME</div></div>
+                <div class="code-underbar"><span id="uaf-code-help">Change CLEAR_POINTER to true, then rerun the timeline to compare.</span><span class="code-safe"><span>●</span> SAFE EDITOR</span></div>
+              </details>
               <div class="timeline-heading"><div><span class="section-overline">STEP THROUGH THE LIFETIME</span><h3>A pointer still remembers the address.</h3></div><button type="button" class="text-button" id="uaf-reset">Reset timeline <span aria-hidden="true">↺</span></button></div>
               <div class="timeline-track" id="uaf-timeline"></div>
               <div class="pointer-visual" id="pointer-visual"></div>
               <div class="uaf-controls"><div class="uaf-instruction"><span class="objective-icon" aria-hidden="true">◎</span><span id="uaf-instruction">Step through each event to see what the saved pointer refers to.</span></div><button type="button" class="run-button" id="uaf-next"><span>Next step</span><span class="run-arrow" aria-hidden="true">→</span></button></div>
               <div class="result-box result-idle" id="uaf-result" role="status" aria-live="polite"><div class="result-icon" id="uaf-result-icon" aria-hidden="true">⌁</div><div class="result-copy"><span class="result-eyebrow" id="uaf-result-eyebrow">READY WHEN YOU ARE</span><p id="uaf-result-message">The object and pointer are waiting in the simulated heap.</p></div><span class="result-tag" id="uaf-result-tag">AWAITING INPUT</span></div>
-              <div class="workbench-bottom"><span><span class="tiny-shield" aria-hidden="true">⬡</span> SIMULATED POINTERS ONLY</span><span>NO API CALLS <i>·</i> NO HARDWARE ACCESS</span></div>
+              <div class="workbench-bottom"><span>Simulation only</span><span>No device access</span></div>
             </section>
 
-            <div class="mission-complete-banner" id="mission-complete-banner" hidden><span class="complete-check" aria-hidden="true">✓</span><span><b>LAB PATCHED</b><small>You showed the bug and verified the fix. Pick another lab when you’re ready.</small></span><span class="complete-points">+1 PATCH</span></div>
+            <div class="mission-complete-banner" id="mission-complete-banner" hidden><span class="complete-check" aria-hidden="true">✓</span><span><b>Lab complete</b><small>You showed the bug and verified the fix.</small></span><button type="button" class="next-lab-button" id="next-lab-button">Next lab <span aria-hidden="true">→</span></button></div>
           </section>
 
           <aside class="guide-rail" aria-label="Learning notes">
             <section class="guide-card card-surface">
-              <div class="guide-heading"><span class="guide-icon" aria-hidden="true">✳</span><span>FIELD NOTES</span><span class="guide-live"><i></i> LIVE</span></div>
+              <div class="guide-heading"><span class="guide-icon" aria-hidden="true">✳</span><span>FIELD NOTES</span></div>
               <div class="guide-body"><span class="guide-label">WHAT TO NOTICE</span><h3 id="notice-title">The boundary is a rule in code.</h3><p id="notice-copy">Memory is just numbered byte-sized boxes. A fixed buffer has an end; an unchecked copy can keep writing past it.</p></div>
               <div class="guide-divider"></div>
               <div class="guide-body guide-learn"><span class="guide-label">THE TAKEAWAY</span><p id="takeaway-copy">Check the input length before copying. A single boundary check protects the neighboring value.</p></div>

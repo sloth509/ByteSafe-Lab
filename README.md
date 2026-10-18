@@ -1,23 +1,32 @@
 # ByteSafe Lab
 
-A browser-only interactive workshop game based on the memory-safety deck. Students can edit a small, safe pseudocode settings pad, enter inputs, inspect a byte map, and compare vulnerable behavior with a patch.
+**An interactive, browser-only cybersecurity workshop game for learning memory safety.** Explore simulated buffer overflows and stale pointers, inspect the byte map, and compare vulnerable behavior with safer code.
+
+ByteSafe Lab is designed for a live classroom workshop. Students can edit a small pseudocode settings pad, run their own inputs, and see how a change affects the teaching model. Facilitators can guide a demonstration with quick bug and fix presets.
+
+## What it teaches
+
+- **Stack buffer boundary:** see how an unchecked input can cross a fixed-size buffer and change a neighboring value in the model.
+- **Heap buffer boundary:** explore the same idea with a simulated packet buffer and neighboring alarm setting.
+- **Use-after-free:** step through object allocation, release, address reuse, and a read through a stale pointer.
+- **Safer checks:** enable a length check or clear a pointer, then repeat the scenario to verify the modeled fix.
 
 ## Workshop flow
 
-1. Open **The one extra byte** and use **Facilitator desk → Show the bug** to demonstrate how a ninth byte can affect an adjacent flag in the teaching model.
-2. Set `CHECK_LENGTH = true` in the code pad or use **Show the fix**, then run the same input and compare the memory map.
-3. Let students edit the code values and test their own inputs. The code pad accepts a `char name[n]` declaration (sizes 1–16) and a `CHECK_LENGTH = true/false` setting.
-4. Move to **The heap boundary** and repeat with a packet parser.
-5. Move to **The stale pointer** and step through allocation, release, address reuse, and read. Change `CLEAR_POINTER` to `true` to block the stale read.
+1. Open **The one extra byte**. Use **Facilitator desk → Show the bug** to demonstrate an input one byte beyond the buffer.
+2. Select **Show the fix** and compare the same boundary case with the length check enabled.
+3. Open **Edit the code** to let students change the supported settings and try their own input. **Fill to buffer limit** and **Add one extra byte** make the boundary easy to compare.
+4. Move to **The heap boundary** and repeat with the packet parser.
+5. Move to **The stale pointer** and step through its four-event timeline. Set `CLEAR_POINTER = true` to block the simulated stale read.
 
-Each lab clears when the vulnerable behavior has been demonstrated and the safety fix has been tested against it. Progress lasts for the current page session and is not uploaded.
+Each lab records progress in the current page session after students demonstrate the bug and test its fix. The **Motion on/off** control can disable interface animations; the page respects the operating system's reduced-motion preference by default.
 
 ## Safety and scope
 
-- This is a deterministic teaching model. It does not compile, execute, or evaluate student-entered code. The editor reads only the specific settings documented above.
-- All memory, pointer, and device states are simulated in the current browser tab. The app makes no device connections or external API calls and uses no accounts, room codes, analytics, or backend. The browser still loads the static HTML, CSS, JavaScript, and icon files from the selected host.
-- The byte visualization simplifies real C/C++ behavior. In particular, it omits string terminators, compiler layout, and allocator details so the boundary effect is visible. Real memory layouts and outcomes vary.
-- The facilitator controls operate only the facilitator’s current tab. Students can play independently on their own devices; there is no synchronized classroom session in this static version.
+- Student-entered text is treated as input data. The app does not compile, execute, or evaluate it; it recognizes only the documented buffer declaration and `CHECK_LENGTH` or `CLEAR_POINTER` setting.
+- Memory, pointer, and device states are deterministic teaching simulations in the current browser tab. The app makes no device connections or external API calls and has no account, room code, analytics, or backend.
+- The byte map simplifies real C/C++ behavior. It omits string terminators, compiler layout, and allocator details so the boundary is visible; real layouts and outcomes vary.
+- Facilitator controls affect only the facilitator's tab. Students can play independently, but this static version does not synchronize a classroom session.
 
 ## Run locally
 
@@ -27,20 +36,22 @@ Serve this directory with any static web server. For example, with Python instal
 python -m http.server 4173
 ```
 
-Then open `http://localhost:4173`.
+Then open [http://localhost:4173](http://localhost:4173).
 
-## Deploy to Render
+## Deploy
 
-Connect this repository as a **Static Site**. The included `render.yaml` sets the no-build command and publishes the repository root. Render can also create the service directly from that file.
+### Render
 
-## Deploy to Vercel
+Connect this repository as a **Static Site**. The included `render.yaml` configures the no-build command and publishes the repository root. Render can also create the service directly from that file.
 
-Import this repository as a static project. Leave the build command empty and set the output directory to `.` (the project root). The included `vercel.json` adds basic response headers; there is no framework or build step.
+### Vercel
 
-## Files
+Import this repository as a static project. Leave the build command empty and set the output directory to `.` (the project root). The included `vercel.json` adds basic response headers. No framework or build step is required.
 
-- `index.html` — accessible page structure
-- `style.css` — responsive visual design
-- `game.js` — deterministic simulation and interaction logic
-- `favicon.svg` — local icon
+## Project files
+
+- `index.html` — accessible page structure and workshop content
+- `style.css` — responsive visual design, interaction states, and motion preferences
+- `game.js` — mission data, safe input parsing, simulations, and interface behavior
+- `favicon.svg` — local app icon
 - `render.yaml`, `vercel.json` — static-host configuration
