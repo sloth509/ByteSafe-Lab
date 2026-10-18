@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: bytesafe-memory-lab
+    runtime: static
+    buildCommand: echo "ByteSafe Lab is static; no build step required"
+    staticPublishPath: .
