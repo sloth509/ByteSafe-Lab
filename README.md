@@ -1,32 +1,27 @@
 # ByteSafe Lab
 
-**An interactive, browser-only cybersecurity workshop game for learning memory safety.** Explore simulated buffer overflows and stale pointers, inspect the byte map, and compare vulnerable behavior with safer code.
+**An eight-quest, browser-only RPG for a hands-on memory-safety workshop.** Take the role of the Memory Keeper, follow one task at a time, and unlock each new topic by solving the current quest.
 
-ByteSafe Lab is designed for a live classroom workshop. Students can edit a small pseudocode settings pad, run their own inputs, and see how a change affects the teaching model. Facilitators can guide a demonstration with quick bug and fix presets.
+## The campaign
 
-## What it teaches
+1. **Map the Memory** — byte-sized storage, addresses, and neighboring values
+2. **The Ninth Byte** — stack buffer overflow and a length check
+3. **Heap Courier** — heap overflows and parser input validation
+4. **Address Compass** — pointers, dereferencing, and pointer arithmetic
+5. **The Reused Slot** — dangling pointers and use-after-free
+6. **Fuzzing Trail** — find and keep a small failing input
+7. **Sanitizer Scan** — read an AddressSanitizer-style diagnostic and verify a fix
+8. **Patchwright Review** — safer C++ patterns and human review of AI suggestions
 
-- **Stack buffer boundary:** see how an unchecked input can cross a fixed-size buffer and change a neighboring value in the model.
-- **Heap buffer boundary:** explore the same idea with a simulated packet buffer and neighboring alarm setting.
-- **Use-after-free:** step through object allocation, release, address reuse, and a read through a stale pointer.
-- **Safer checks:** enable a length check or clear a pointer, then repeat the scenario to verify the modeled fix.
-
-## Workshop flow
-
-1. Open **The one extra byte**. Use **Facilitator desk → Show the bug** to demonstrate an input one byte beyond the buffer.
-2. Select **Show the fix** and compare the same boundary case with the length check enabled.
-3. Open **Edit the code** to let students change the supported settings and try their own input. **Fill to buffer limit** and **Add one extra byte** make the boundary easy to compare.
-4. Move to **The heap boundary** and repeat with the packet parser.
-5. Move to **The stale pointer** and step through its four-event timeline. Set `CLEAR_POINTER = true` to block the simulated stale read.
-
-Each lab records progress in the current page session after students demonstrate the bug and test its fix. The **Motion on/off** control can disable interface animations; the page respects the operating system's reduced-motion preference by default.
+Each quest gives participants one immediate action. Questions can be retried without losing progress. Later quests unlock after the current one is complete. Completed quests are remembered in the current browser tab's session storage.
 
 ## Safety and scope
 
-- Student-entered text is treated as input data. The app does not compile, execute, or evaluate it; it recognizes only the documented buffer declaration and `CHECK_LENGTH` or `CLEAR_POINTER` setting.
-- Memory, pointer, and device states are deterministic teaching simulations in the current browser tab. The app makes no device connections or external API calls and has no account, room code, analytics, or backend.
-- The byte map simplifies real C/C++ behavior. It omits string terminators, compiler layout, and allocator details so the boundary is visible; real layouts and outcomes vary.
-- Facilitator controls affect only the facilitator's tab. Students can play independently, but this static version does not synchronize a classroom session.
+- Student-entered text is treated as data. The editor does not compile, execute, or evaluate it; it recognizes only a buffer declaration and the `CHECK_LENGTH` or `CLEAR_POINTER` setting.
+- Memory, pointer, parser, fuzzer, and sanitizer behavior are deterministic teaching simulations. The miniature fuzzer checks a small set of input lengths; it is not a production fuzzing tool. Sanitizer reports are examples, not compiler output.
+- The app makes no device connections or external API calls. It has no account, room code, analytics, or backend. Progress and the motion preference stay in browser storage.
+- Real C/C++ memory layouts and behavior vary by compiler and system. The visual memory map intentionally simplifies them to explain boundaries.
+- Facilitator controls affect only the current browser tab. Students can play independently; this static version does not synchronize a classroom session.
 
 ## Run locally
 
@@ -42,7 +37,7 @@ Then open [http://localhost:4173](http://localhost:4173).
 
 ### Render
 
-Connect this repository as a **Static Site**. The included `render.yaml` configures the no-build command and publishes the repository root. Render can also create the service directly from that file.
+Connect this repository as a **Static Site**. The included `render.yaml` configures a no-build deploy and publishes the repository root.
 
 ### Vercel
 
@@ -50,8 +45,8 @@ Import this repository as a static project. Leave the build command empty and se
 
 ## Project files
 
-- `index.html` — accessible page structure and workshop content
-- `style.css` — responsive visual design, interaction states, and motion preferences
-- `game.js` — mission data, safe input parsing, simulations, and interface behavior
+- `index.html` — accessible campaign structure and quest content
+- `style.css` — responsive visual design, interaction states, and reduced-motion support
+- `game.js` — quest data, safe input parsing, simulations, and progression
 - `favicon.svg` — local app icon
 - `render.yaml`, `vercel.json` — static-host configuration

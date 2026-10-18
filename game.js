@@ -1,68 +1,162 @@
-/* ByteSafe Lab is a deterministic teaching model. Student text is parsed as
-   input data and is never evaluated or sent to a server. */
+/* ByteSafe Lab is a local teaching simulation. Editable pseudocode is parsed
+   for a few named settings; student text is never compiled or evaluated. */
 (() => {
   'use strict';
 
-  // Mission copy and pseudocode are display/configuration data. The simulation
-  // below reads only the named settings it needs; it never executes this text.
+  // Quest copy, questions, and pseudocode are configuration data for the UI.
+  // Each mission kind selects a bounded local mechanic below.
   const missions = [
     {
-      id: 'stack',
-      label: 'The one extra byte',
-      type: 'STACK OVERFLOW',
-      title: 'Smart lock access panel',
-      icon: '⌑',
-      level: 'STARTER',
-      description: 'An 8-byte username sits next to an access flag. What happens when the input is one byte too long?',
-      objective: 'Trigger the simulated overflow, then add a bounds check and prove it blocks the same input.',
-      noticeTitle: 'The boundary is a rule in code.',
-      notice: 'Memory is just numbered byte-sized boxes. A fixed buffer has an end; an unchecked copy can keep writing past it.',
-      takeaway: 'Check the input length before copying. A single boundary check protects the neighboring value.',
-      device: 'Smart lock',
-      deviceDetail: 'ACCESS CONTROL: ON',
-      buffer: 'username',
-      capacity: 8,
-      neighbor: 'is_admin',
-      effect: 'The first byte past the username lands in the neighboring is_admin flag. The simulated lock grants lab access.',
-      initialInput: '',
-      code: 'char username[8];       // fixed-size buffer\nCHECK_LENGTH = false;    // try true to reject overlong input\ncopy_bytes(username, input);'
+      id: 'map', label: 'Map the Memory', type: 'MEMORY BASICS', kind: 'quiz', rank: 'QUEST 1',
+      title: 'Map the Memory', device: 'Archive map', deviceDetail: 'ONE CHAR: ONE BYTE',
+      description: 'Before you protect the archive, learn how its byte-sized rooms are numbered.',
+      objective: 'Learn how many byte boxes a character uses and how addresses move.',
+      noticeTitle: 'Memory is arranged in byte-sized boxes.',
+      notice: 'Each byte has an address. A char uses one byte; an int usually uses four. Values can sit next to one another.',
+      takeaway: 'Keep track of the size and address range each value uses.',
+      questions: [{
+        prompt: 'How many byte boxes does one char use?',
+        choices: [
+          { text: '1 byte', correct: true, reply: 'Correct. A char uses one byte. An int usually uses four, so its value spans several boxes.' },
+          { text: '4 bytes', reply: 'An int usually uses four bytes. A char uses one.' },
+          { text: '8 bytes', reply: 'That is larger than one char. In this model a char is one byte.' }
+        ]
+      }, {
+        prompt: 'A one-byte char starts at address 0x1000. What address comes next?',
+        choices: [
+          { text: '0x1001', correct: true, reply: 'Exactly. Each byte has the next address, so neighboring values can occupy the boxes right after a buffer.' },
+          { text: '0x1004', reply: 'That would skip four byte addresses. The next byte after 0x1000 is 0x1001.' },
+          { text: '0x1008', reply: 'That would skip eight byte addresses. The next byte after 0x1000 is 0x1001.' }
+        ]
+      }]
     },
     {
-      id: 'heap',
-      label: 'The heap boundary',
-      type: 'HEAP OVERFLOW',
-      title: 'Cooling monitor parser',
-      icon: '⌁',
-      level: 'FIELD CASE',
-      description: 'A 6-byte packet buffer is followed by an alarm limit. A long reading can spill into that value.',
-      objective: 'Send a packet past its six-byte buffer, observe the demo alarm setting change, then reject it safely.',
-      noticeTitle: 'The heap has neighbors too.',
-      notice: 'Heap objects are allocated dynamically. An unchecked write past one object can alter another object nearby.',
-      takeaway: 'Validate packet length at the parser boundary. Sanitizers can help catch out-of-bounds writes during testing.',
-      device: 'Cooling monitor',
-      deviceDetail: 'ALARM LIMIT: 24 °C',
-      buffer: 'packet',
-      capacity: 6,
-      neighbor: 'alarm_limit',
-      effect: 'The first byte past packet changed the neighboring alarm_limit in this model. The demo reports a corrupted setting.',
-      initialInput: '',
-      code: 'char packet[6];         // heap packet buffer\nCHECK_LENGTH = false;    // try true to reject overlong input\ncopy_bytes(packet, input);'
+      id: 'stack', label: 'The Ninth Byte', type: 'STACK OVERFLOW', kind: 'stack', rank: 'QUEST 2',
+      title: 'The Ninth Byte', device: 'Smart lock access', deviceDetail: 'ACCESS FLAG: LOCKED',
+      description: 'A username buffer has room for eight bytes. The archive received nine.',
+      objective: 'Watch the extra byte reach a neighboring flag, then reject it with a length check.',
+      noticeTitle: 'A buffer has a boundary; an unchecked copy may not.',
+      notice: 'Stack variables can sit beside one another. A write past a local buffer may alter a neighboring value, crash a program, leak data, or affect control flow.',
+      takeaway: 'Check a length before copying. Do not assume the input fits.',
+      buffer: 'username', capacity: 8, neighbor: 'is_admin',
+      effect: 'The ninth byte reached the neighboring access flag in this teaching model.',
+      initialInput: 'AAAAAAAAA',
+      code: 'char username[8];\nCHECK_LENGTH = false;\ncopy_bytes(username, input);'
     },
     {
-      id: 'uaf',
-      label: 'The stale pointer',
-      type: 'USE-AFTER-FREE',
-      title: 'Reused status object',
-      icon: '↝',
-      level: 'LIFETIME BUG',
-      description: 'A status object is freed, but its old pointer is kept. Step through the timeline to see what reuses that address.',
-      objective: 'Read through the stale pointer in the simulation, then clear it on release and confirm the read is blocked.',
-      noticeTitle: 'A freed address can be reused.',
-      notice: 'After an object is released, its old pointer is dangling. The allocator may later reuse that memory for a different object.',
-      takeaway: 'Make ownership and lifetimes clear. Reset a pointer after release and prefer RAII or unique ownership in C++.',
-      device: 'Status monitor',
-      deviceDetail: 'STATUS OBJECT: SAFE',
-      code: 'release(status);\nCLEAR_POINTER = false;  // try true after release\nread(status);            // uses the saved pointer'
+      id: 'heap', label: 'Heap Courier', type: 'HEAP OVERFLOW', kind: 'heap', rank: 'QUEST 3',
+      title: 'Heap Courier', device: 'Cooling monitor', deviceDetail: 'ALARM LIMIT: 24 °C',
+      description: 'A packet parser has a six-byte slot. Deliver a packet that is too long.',
+      objective: 'Find the packet that crosses the heap buffer, then validate its length before copying.',
+      noticeTitle: 'Heap objects can have neighbors too.',
+      notice: 'An unchecked write past a dynamically allocated object can affect another nearby value. Allocator layout varies.',
+      takeaway: 'Validate packet size and format at the parser boundary.',
+      buffer: 'packet', capacity: 6, neighbor: 'alarm_limit',
+      effect: 'The overlong packet changed the neighboring alarm setting in this model.',
+      initialInput: 'TEMP=OK',
+      code: 'char packet[6];\nCHECK_LENGTH = false;\ncopy_bytes(packet, input);'
+    },
+    {
+      id: 'pointer', label: 'Address Compass', type: 'POINTERS', kind: 'quiz', rank: 'QUEST 4',
+      title: 'Address Compass', device: 'Address compass', deviceDetail: 'POINTER: ADDRESS',
+      description: 'The archive map points to locations. Follow the address, not the value.',
+      objective: 'Identify what a pointer stores and how pointer steps move through memory.',
+      noticeTitle: 'A pointer holds an address.',
+      notice: 'Dereferencing follows that address to read or write. Pointer arithmetic moves by the size of the pointed-to type.',
+      takeaway: 'A wrong or stale address can reach data the code does not own.',
+      questions: [
+        {
+          prompt: 'What does a pointer store?',
+          choices: [
+            { text: 'The address of a value', correct: true, reply: 'Correct. A pointer stores a location. Dereferencing follows it to the value.' },
+            { text: 'The value itself, copied into the pointer', reply: 'A pointer stores an address. The value is at that location.' },
+            { text: 'The number of bytes in a variable', reply: 'That is a size. A pointer stores an address.' }
+          ]
+        },
+        {
+          prompt: 'When a typed pointer moves by one, what determines the byte distance?',
+          choices: [
+            { text: 'The size of the pointed-to type', correct: true, reply: 'Right. Pointer arithmetic is scaled by the pointed-to type, so a step may move several bytes.' },
+            { text: 'It always moves exactly one byte', reply: 'Not for every type. A typed pointer step uses the size of its pointed-to type.' },
+            { text: 'The length of the variable name', reply: 'Names do not affect addresses. The pointed-to type determines the step.' }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'uaf', label: 'The Reused Slot', type: 'USE-AFTER-FREE', kind: 'uaf', rank: 'QUEST 5',
+      title: 'The Reused Slot', device: 'Status monitor', deviceDetail: 'STATUS OBJECT: SAFE',
+      description: 'A released object leaves its address behind. Follow what happens when that slot is reused.',
+      objective: 'Trace the dangling pointer, then clear it and replay the timeline.',
+      noticeTitle: 'A freed address can change meaning.',
+      notice: 'A pointer may still hold an address after an object is released. An allocator can reuse that slot for another object.',
+      takeaway: 'Make ownership clear. Reset pointers after release and prefer unique ownership such as unique_ptr.',
+      code: 'release(status);\nCLEAR_POINTER = false;\nread(status);'
+    },
+    {
+      id: 'fuzz', label: 'Fuzzing Trail', type: 'PARSER + FUZZER', kind: 'fuzzer', rank: 'QUEST 6',
+      title: 'Fuzzing Trail', device: 'Packet parser', deviceDetail: 'PARSER: READY',
+      description: 'The parser sees more than normal inputs. Let a small fuzzer probe its boundary.',
+      objective: 'Find the smallest failing input, patch the parser, and rerun the same boundary set.',
+      noticeTitle: 'Fuzzers try many unusual inputs.',
+      notice: 'This miniature fuzzer checks increasing input lengths and exposes the shortest failure. Real fuzzers mutate many input formats and minimize cases that fail.',
+      takeaway: 'Keep the smallest failing case as a regression test after fixing the parser.',
+      buffer: 'packet', capacity: 8, neighbor: 'record_size',
+      effect: 'The smallest failing input crossed the parser buffer boundary in this model.',
+      initialInput: '',
+      code: 'char packet[8];\nCHECK_LENGTH = false;\nparse_bytes(packet, input);'
+    },
+    {
+      id: 'sanitizer', label: 'Sanitizer Scan', type: 'ASAN + UBSAN', kind: 'sanitizer', rank: 'QUEST 7',
+      title: 'Sanitizer Scan', device: 'Cooling monitor', deviceDetail: 'PARSER: CHECKED',
+      description: 'The test case is known. Ask a sanitizer to point out the first unsafe access.',
+      objective: 'Read the simulated diagnostic, add a bounds check, and scan the same case again.',
+      noticeTitle: 'Sanitizers catch unsafe behavior during testing.',
+      notice: 'AddressSanitizer can report out-of-bounds access and use-after-free. UBSan reports several kinds of undefined behavior.',
+      takeaway: 'Fix the first clear report, then rerun tests with sanitizers enabled.',
+      buffer: 'packet', capacity: 6, neighbor: 'alarm_limit',
+      effect: 'The diagnostic found a write beyond the packet buffer.',
+      initialInput: 'TEMP=OK',
+      code: 'char packet[6];\nCHECK_LENGTH = false;\ncopy_bytes(packet, input);'
+    },
+    {
+      id: 'review', label: 'Patchwright Review', type: 'SAFER C++ + AI', kind: 'quiz', rank: 'QUEST 8',
+      title: 'Patchwright Review', device: 'Archive review desk', deviceDetail: 'PATCH: HUMAN VERIFIED',
+      description: 'The archive proposes a patch. Choose safer tools, then verify the suggestion yourself.',
+      objective: 'Choose safer C++ patterns and decide how to check an AI-assisted fix.',
+      noticeTitle: 'Safer APIs reduce common memory mistakes.',
+      notice: 'Prefer std::string, bounds-checked access such as .at(), span views, and clear ownership such as unique_ptr.',
+      takeaway: 'AI can suggest a patch, but tests, fuzzing, sanitizers, and human review must verify it.',
+      questions: [
+        {
+          prompt: 'Replace a fixed char buffer and unchecked string copy. Which choice is safer?',
+          choices: [
+            { text: 'Use std::string for the username', correct: true, reply: 'Good choice. std::string manages its own size and avoids a fixed char buffer for this input.' },
+            { text: 'Keep the buffer and call strcpy again', reply: 'That keeps the unchecked copy. Prefer a size-aware string or a checked operation.' }
+          ]
+        },
+        {
+          prompt: 'Which access checks whether an index is in range?',
+          choices: [
+            { text: 'Use container.at(index)', correct: true, reply: 'Correct. at() checks bounds. A span can also make the available range explicit in an API.' },
+            { text: 'Use container[index] without checking', reply: 'Unchecked indexing can still go out of range. Use at() or validate the index first.' }
+          ]
+        },
+        {
+          prompt: 'Which tool expresses one clear owner of a heap object?',
+          choices: [
+            { text: 'std::unique_ptr', correct: true, reply: 'Right. unique_ptr ties the object lifetime to its owner and avoids manual delete in the usual path.' },
+            { text: 'A raw owning pointer copied to several places', reply: 'Several raw owners make lifetime bugs easier. Prefer a clear owner such as unique_ptr.' }
+          ]
+        },
+        {
+          prompt: 'An AI suggests a fix. What should the Memory Keeper do next?',
+          choices: [
+            { text: 'Review it, then verify with tests, fuzzing, and sanitizers', correct: true, reply: 'Quest complete. AI can help find and rewrite risky code, but people still verify the patch.' },
+            { text: 'Accept it because the explanation sounds confident', reply: 'AI can be confidently wrong. Review the change and verify it with tests and tools.' }
+          ]
+        }
+      ]
     }
   ];
 
@@ -71,20 +165,94 @@
   const codeEditor = $('#code-editor');
   const payloadInput = $('#payload-input');
   const codeEditorUaf = $('#uaf-code-editor');
-  const byteLab = $('.workbench');
+  const byteLab = $('#byte-workbench');
   const uafLab = $('#uaf-workbench');
-  const progress = Object.fromEntries(missions.map((mission) => [mission.id, { sawBug: false, testedFix: false }]));
+  const quizLab = $('#quiz-workbench');
+  const savedCompleted = readCompletedMissions();
+  const progress = Object.fromEntries(missions.map((mission) => [mission.id, {
+    sawBug: false,
+    testedFix: false,
+    completed: savedCompleted.has(mission.id)
+  }]));
   let activeMission = missions[0];
   let latestByteRun = null;
   let timelineStep = 0;
   let timelineMode = null;
-  let timelineOutcome = null;
+  let quizIndex = 0;
+  let fuzzCaseFound = false;
 
-  function escapeText(value) {
-    return String(value);
+  function readCompletedMissions() {
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem('bytesafe-quest-progress-v1') || '[]');
+      return new Set(Array.isArray(saved) ? saved.filter((id) => missions.some((mission) => mission.id === id)) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function saveCompletedMissions() {
+    try {
+      const completed = missions.filter((mission) => progress[mission.id].completed).map((mission) => mission.id);
+      window.sessionStorage.setItem('bytesafe-quest-progress-v1', JSON.stringify(completed));
+    } catch { /* Quest completion remains available for this page session. */ }
+  }
+
+  function isByteMission() {
+    return ['stack', 'heap', 'fuzzer', 'sanitizer'].includes(activeMission.kind);
+  }
+
+  function missionComplete(mission) {
+    return progress[mission.id].completed;
+  }
+
+  function missionUnlocked(index) {
+    // The previous quest must be solved before a new one appears as playable.
+    return index === 0 || missionComplete(missions[index - 1]);
+  }
+
+  function setGuidedTask(step, title, copy, kicker = `STEP ${step} OF 3`, completed = false) {
+    $('#task-kicker').textContent = kicker;
+    $('#task-title').textContent = title;
+    $('#task-description').textContent = copy;
+    document.querySelectorAll('[data-journey-step]').forEach((item) => {
+      const itemStep = Number(item.dataset.journeyStep);
+      item.classList.toggle('is-current', !completed && itemStep === step);
+      item.classList.toggle('is-done', completed || itemStep < step);
+    });
+  }
+
+  function setByteReadyTask() {
+    if (activeMission.kind === 'fuzzer') {
+      setGuidedTask(1, 'Run the fuzzer', 'Select “Run fuzzer”. It will try a small set of input lengths and find the shortest one that crosses the parser boundary.');
+    } else if (activeMission.kind === 'sanitizer') {
+      setGuidedTask(1, 'Run the sanitizer scan', 'The example is ready. Run the simulated scan and read the first unsafe-access report.');
+    } else {
+      setGuidedTask(1, 'Run the example', 'The example is ready below. Run it once, then inspect the byte map for the value that changed.');
+    }
+  }
+
+  function parseByteSettings(source) {
+    // The code pad recognizes only a bounded buffer declaration and one flag.
+    const bufferMatch = source.match(/\bchar\s+([A-Za-z_]\w*)\s*\[\s*(\d+)\s*\]/i);
+    const checkMatch = source.match(/\bCHECK_LENGTH\s*=\s*(true|false)\b/i);
+    if (!bufferMatch || !checkMatch) {
+      return { valid: false, error: 'Keep a char buffer such as char name[8] and a CHECK_LENGTH = true/false line.' };
+    }
+    const capacity = Number(bufferMatch[2]);
+    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 16) {
+      return { valid: false, error: 'For this visual model, set the buffer size from 1 to 16.' };
+    }
+    return { valid: true, buffer: bufferMatch[1], capacity, checked: checkMatch[1].toLowerCase() === 'true', neighbor: activeMission.neighbor };
+  }
+
+  function parseUafSettings() {
+    const clearMatch = codeEditorUaf.value.match(/\bCLEAR_POINTER\s*=\s*(true|false)\b/i);
+    if (!clearMatch) return { valid: false, error: 'Keep a CLEAR_POINTER = true/false line in the code pad.' };
+    return { valid: true, clearsPointer: clearMatch[1].toLowerCase() === 'true' };
   }
 
   function setResult(box, kind, eyebrow, message, tag, icon) {
+    box.hidden = false;
     box.className = `result-box result-${kind}`;
     box.querySelector('.result-eyebrow').textContent = eyebrow;
     box.querySelector('.result-copy p').textContent = message;
@@ -92,41 +260,13 @@
     box.querySelector('.result-icon').textContent = icon;
   }
 
-  function activeIsUaf() {
-    return activeMission.id === 'uaf';
-  }
-
-  function parseByteSettings(source, mission = activeMission) {
-    // Keep the editable code pad intentionally small: recognize a buffer size
-    // and a boolean check, rather than evaluating arbitrary student code.
-    const bufferMatch = source.match(/\bchar\s+([A-Za-z_]\w*)\s*\[\s*(\d+)\s*\]/i);
-    const checkMatch = source.match(/\bCHECK_LENGTH\s*=\s*(true|false)\b/i);
-    if (!bufferMatch || !checkMatch) {
-      return { valid: false, error: 'Keep a char buffer like char name[8] and a CHECK_LENGTH = true/false line in the code pad.' };
-    }
-    const capacity = Number(bufferMatch[2]);
-    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 16) {
-      return { valid: false, error: 'For this visual model, set the buffer size to a whole number from 1 to 16.' };
-    }
-    return { valid: true, buffer: bufferMatch[1], capacity, checked: checkMatch[1].toLowerCase() === 'true', neighbor: mission.neighbor };
-  }
-
-  function parseUafSettings() {
-    // The lifetime lab has one supported switch, parsed as data just like the
-    // byte labs' bounds-check setting.
-    const source = codeEditorUaf.value;
-    const clearMatch = source.match(/\bCLEAR_POINTER\s*=\s*(true|false)\b/i);
-    if (!clearMatch) return { valid: false, error: 'Keep a CLEAR_POINTER = true/false line in the code pad.' };
-    return { valid: true, clearsPointer: clearMatch[1].toLowerCase() === 'true' };
-  }
-
   function setByteModeIndicator(checked, invalid = false) {
     const indicator = $('#mode-indicator');
     indicator.classList.toggle('mode-patched', checked && !invalid);
-    indicator.classList.toggle('mode-vulnerable', !checked && !invalid);
-    const label = invalid ? 'Check code settings' : checked ? 'Patched version' : 'Vulnerable version';
-    $('#mode-label').textContent = label.toUpperCase();
-    $('#code-summary-status').textContent = label;
+    indicator.classList.toggle('mode-invalid', invalid);
+    const label = invalid ? 'CHECK SETTINGS' : checked ? 'CHECK ON' : 'CHECK OFF';
+    $('#mode-label').textContent = label;
+    $('#code-summary-status').textContent = invalid ? 'Check settings' : checked ? 'Safety check on' : 'Vulnerable version';
     $('#code-summary-status').classList.toggle('is-patched', checked && !invalid);
     $('#code-summary-status').classList.toggle('is-invalid', invalid);
   }
@@ -134,25 +274,48 @@
   function setUafModeIndicator(checked, invalid = false) {
     const indicator = $('#uaf-mode-indicator');
     indicator.classList.toggle('mode-patched', checked && !invalid);
-    indicator.classList.toggle('mode-vulnerable', !checked && !invalid);
-    const label = invalid ? 'Check code settings' : checked ? 'Patched version' : 'Vulnerable version';
-    $('#uaf-mode-label').textContent = label.toUpperCase();
-    $('#uaf-code-summary-status').textContent = label;
+    indicator.classList.toggle('mode-invalid', invalid);
+    const label = invalid ? 'CHECK SETTINGS' : checked ? 'POINTER CLEARED' : 'POINTER RETAINED';
+    $('#uaf-mode-label').textContent = label;
+    $('#uaf-code-summary-status').textContent = invalid ? 'Check settings' : checked ? 'Pointer cleared' : 'Vulnerable version';
     $('#uaf-code-summary-status').classList.toggle('is-patched', checked && !invalid);
     $('#uaf-code-summary-status').classList.toggle('is-invalid', invalid);
   }
 
+  function updateRunButton(config) {
+    const label = $('#run-button').querySelector('span');
+    if (activeMission.kind === 'fuzzer') label.textContent = fuzzCaseFound ? 'Rerun fuzzer' : 'Run fuzzer';
+    else if (activeMission.kind === 'sanitizer') label.textContent = 'Run sanitizer scan';
+    else label.textContent = progress[activeMission.id].sawBug && config.valid && config.checked ? 'Verify the fix' : 'Run example';
+  }
+
   function updateModePreview() {
-    if (activeIsUaf()) {
-      const parsed = parseUafSettings();
-      setUafModeIndicator(parsed.clearsPointer, !parsed.valid);
-    } else {
-      const parsed = parseByteSettings(codeEditor.value);
-      setByteModeIndicator(parsed.checked, !parsed.valid);
-      if (parsed.valid) {
-        payloadInput.placeholder = `Try ${parsed.capacity + 1} A's…`;
-        const byteCount = new TextEncoder().encode(payloadInput.value).length;
-        $('#byte-count').textContent = `${byteCount} ${byteCount === 1 ? 'BYTE' : 'BYTES'}`;
+    if (activeMission.kind === 'uaf') {
+      const settings = parseUafSettings();
+      setUafModeIndicator(settings.clearsPointer, !settings.valid);
+      if (timelineStep >= 4 && progress.uaf.sawBug && settings.valid) {
+        if (settings.clearsPointer && !progress.uaf.testedFix) {
+          setGuidedTask(3, 'Replay with the pointer cleared', 'The setting is on. Reset the timeline, then step through all four events to verify the stale read is blocked.');
+        } else if (!settings.clearsPointer) {
+          setGuidedTask(2, 'Patch the dangling pointer', 'Open the code editor and change CLEAR_POINTER = false to true. Then replay the timeline.');
+        }
+      }
+      return;
+    }
+    if (!isByteMission()) return;
+    const config = parseByteSettings(codeEditor.value);
+    setByteModeIndicator(config.checked, !config.valid);
+    updateRunButton(config);
+    if (config.valid) {
+      payloadInput.maxLength = String(config.capacity + 16);
+      const byteCount = new TextEncoder().encode(payloadInput.value).length;
+      $('#byte-count').textContent = `${byteCount} ${byteCount === 1 ? 'BYTE' : 'BYTES'}`;
+      if (progress[activeMission.id].sawBug && !progress[activeMission.id].completed) {
+        if (config.checked && !progress[activeMission.id].testedFix) {
+          setGuidedTask(3, 'The check is on. Verify it.', 'Run the same input again. A safe parser rejects it before the write reaches the neighbor.');
+        } else if (!config.checked && $('#memory-section').hidden === false) {
+          setGuidedTask(2, 'Inspect the changed value', `Look below the buffer divider. Then open Code editor, change CHECK_LENGTH = false to true, and run the same input again.`);
+        }
       }
     }
   }
@@ -160,16 +323,18 @@
   function renderMissionList() {
     missionList.replaceChildren();
     missions.forEach((mission, index) => {
-      const complete = progress[mission.id].sawBug && progress[mission.id].testedFix;
+      const complete = missionComplete(mission);
+      const unlocked = missionUnlocked(index);
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `mission-button${complete ? ' is-complete' : ''}`;
+      button.className = `mission-button${complete ? ' is-complete' : ''}${mission.id === activeMission.id ? ' is-active' : ''}`;
       button.dataset.mission = mission.id;
+      button.disabled = !unlocked;
       button.setAttribute('aria-current', mission.id === activeMission.id ? 'step' : 'false');
-      button.setAttribute('aria-label', `Mission ${index + 1}: ${mission.label}${complete ? ', patched' : ''}`);
+      button.setAttribute('aria-label', `Quest ${index + 1}: ${mission.label}${complete ? ', complete' : unlocked ? ', available' : ', locked'}`);
       const number = document.createElement('span');
       number.className = 'mission-number';
-      number.textContent = `0${index + 1}`;
+      number.textContent = String(index + 1).padStart(2, '0');
       const content = document.createElement('span');
       content.className = 'mission-name';
       const name = document.createElement('span');
@@ -178,36 +343,51 @@
       type.className = 'mission-type';
       type.textContent = mission.type;
       content.append(name, type);
-      const check = document.createElement('span');
-      check.className = 'mission-check';
-      check.setAttribute('aria-hidden', 'true');
-      check.textContent = complete ? '✓' : '';
-      button.append(number, content, check);
+      const state = document.createElement('span');
+      state.className = complete ? 'mission-check' : 'mission-lock';
+      state.setAttribute('aria-hidden', 'true');
+      state.textContent = complete ? '✓' : unlocked ? '›' : 'LOCKED';
+      button.append(number, content, state);
       missionList.append(button);
     });
     updateProgress();
   }
 
   function updateProgress() {
-    const done = missions.filter((mission) => progress[mission.id].sawBug && progress[mission.id].testedFix).length;
-    $('#progress-label').textContent = `${done} / ${missions.length}`;
-    $('#progress-fill').style.width = `${(done / missions.length) * 100}%`;
+    const done = missions.filter(missionComplete).length;
+    const percentage = (done / missions.length) * 100;
+    $('#campaign-complete-count').textContent = String(done);
+    $('#campaign-rank').textContent = `MEMORY KEEPER · RANK ${Math.min(missions.length, done + 1)}`;
+    $('#progress-fill').style.width = `${percentage}%`;
   }
 
   function updateCompletion() {
-    const complete = progress[activeMission.id].sawBug && progress[activeMission.id].testedFix;
-    $('#mission-complete-banner').hidden = !complete;
-    renderMissionList();
-    if (missions.every((mission) => progress[mission.id].sawBug && progress[mission.id].testedFix)) {
-      $('#mission-complete-banner').querySelector('small').textContent = 'All three labs complete. Nice work protecting memory boundaries and lifetimes.';
-    } else {
-      $('#mission-complete-banner').querySelector('small').textContent = 'You showed the bug and verified the fix.';
+    const complete = missionComplete(activeMission);
+    const banner = $('#mission-complete-banner');
+    banner.hidden = !complete;
+    if (complete) {
+      const allComplete = missions.every(missionComplete);
+      $('#complete-title').textContent = allComplete ? 'Badge earned: Patchwright' : 'Quest cleared';
+      $('#complete-copy').textContent = allComplete
+        ? 'You restored the archive. You can revisit any unlocked quest from the quest map.'
+        : 'You completed the task. The next quest is now unlocked.';
+      $('#next-lab-button').querySelector('span').textContent = allComplete ? '✦' : '→';
+      $('#next-lab-button').firstChild.textContent = allComplete ? 'Journey complete ' : 'Continue journey ';
+      $('#next-lab-button').disabled = allComplete;
     }
+    renderMissionList();
   }
 
-  function setDeviceState(alert, detail) {
-    const card = $('.device-card');
-    card.classList.toggle('is-compromised', Boolean(alert));
+  function completeCurrentMission() {
+    progress[activeMission.id].completed = true;
+    saveCompletedMissions();
+    updateCompletion();
+  }
+
+  function setDeviceState(alert, detail, visible = true) {
+    const card = $('#device-card');
+    card.hidden = !visible;
+    card.classList.toggle('is-alert', Boolean(alert));
     const status = $('#device-status');
     status.classList.toggle('status-alert', Boolean(alert));
     status.querySelector('span').textContent = alert ? 'CHANGED' : 'SECURE';
@@ -216,13 +396,12 @@
 
   function updateMissionCopy() {
     const index = missions.findIndex((mission) => mission.id === activeMission.id) + 1;
-    $('#mission-count').textContent = `0${index} / 0${missions.length}`;
-    $('#mission-kicker').innerHTML = `LAB 0${index} <span class="meta-slash">/</span> ${activeMission.type}`;
+    $('#mission-count').textContent = `${String(index).padStart(2, '0')} / ${String(missions.length).padStart(2, '0')}`;
+    $('#mission-kicker').textContent = `QUEST ${String(index).padStart(2, '0')} / ${activeMission.type}`;
     $('#mission-title').textContent = activeMission.title;
     $('#mission-description').textContent = activeMission.description;
     $('#mission-objective').textContent = activeMission.objective;
-    $('#mission-icon').textContent = activeMission.icon;
-    $('#level-pill').textContent = activeMission.level;
+    $('#level-pill').textContent = activeMission.rank;
     $('#notice-title').textContent = activeMission.noticeTitle;
     $('#notice-copy').textContent = activeMission.notice;
     $('#takeaway-copy').textContent = activeMission.takeaway;
@@ -232,42 +411,128 @@
 
   function resetByteLab() {
     latestByteRun = null;
-    payloadInput.value = '';
-    $('#byte-count').textContent = '0 BYTES';
-    const config = parseByteSettings(codeEditor.value);
-    renderMemory(config.valid ? config : { buffer: activeMission.buffer, capacity: activeMission.capacity, neighbor: activeMission.neighbor });
-    setResult($('#result-box'), 'idle', 'READY WHEN YOU ARE', 'Run an input to see how this version of the code behaves.', 'AWAITING INPUT', '⌁');
-    setDeviceState(false, activeMission.deviceDetail);
+    fuzzCaseFound = false;
+    payloadInput.value = activeMission.initialInput || '';
+    $('#input-label').textContent = activeMission.kind === 'fuzzer' ? 'Fuzzer input (filled after scan)' : 'Example input';
+    $('#input-help').textContent = activeMission.kind === 'fuzzer'
+      ? 'The fuzzer will create a small set of boundary inputs for you.'
+      : `This buffer holds ${activeMission.capacity} bytes. ${activeMission.initialInput ? 'The example is ready below.' : 'Run the example to begin.'}`;
+    $('#byte-count').textContent = `${new TextEncoder().encode(payloadInput.value).length} BYTES`;
+    $('#tool-heading').textContent = activeMission.kind === 'fuzzer' ? 'SEARCH FOR A FAILURE' : activeMission.kind === 'sanitizer' ? 'RUN A SIMULATED SANITIZER' : 'RUN THE EXAMPLE';
+    $('#tool-subtitle').textContent = activeMission.kind === 'fuzzer' ? 'The fuzzer will find the smallest failing input.' : activeMission.kind === 'sanitizer' ? 'This scan is a teaching model, not a compiler tool.' : 'The example is ready. You can change it.';
+    $('#code-help').textContent = `To patch this quest, change CHECK_LENGTH = false to true.`;
+    $('#memory-section').hidden = true;
+    $('#result-box').hidden = true;
+    $('#code-details').open = false;
+    $('.advanced-tools').open = false;
+    renderMemory({ buffer: activeMission.buffer, capacity: activeMission.capacity, neighbor: activeMission.neighbor }, null);
+    setDeviceState(false, activeMission.deviceDetail, false);
+    setByteReadyTask();
+    updateModePreview();
+  }
+
+  function renderQuizQuestion() {
+    const question = activeMission.questions[quizIndex];
+    $('#quiz-category').textContent = activeMission.id === 'review' ? 'PATCHWRIGHT REVIEW' : activeMission.type;
+    $('#quiz-count').textContent = `QUESTION ${quizIndex + 1} / ${activeMission.questions.length}`;
+    $('#quiz-question').textContent = question.prompt;
+    $('#quiz-options').replaceChildren();
+    $('#quiz-feedback').hidden = true;
+    $('#quiz-feedback').className = 'quiz-feedback';
+    $('#quiz-next').hidden = true;
+    $('#quiz-next').disabled = false;
+    $('#quiz-next').querySelector('span').textContent = quizIndex === activeMission.questions.length - 1 ? 'Claim quest key' : 'Next question';
+    question.choices.forEach((choice, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'quiz-option';
+      button.dataset.answer = String(index);
+      const mark = document.createElement('span');
+      mark.className = 'quiz-option-mark';
+      mark.textContent = String.fromCharCode(65 + index);
+      const label = document.createElement('span');
+      label.textContent = choice.text;
+      button.append(mark, label);
+      $('#quiz-options').append(button);
+    });
+    const finalQuestions = activeMission.questions.length > 1;
+    $('.journey-steps').hidden = true;
+    setGuidedTask(1, finalQuestions ? 'One review question at a time' : 'Choose the best answer',
+      finalQuestions ? 'Pick the safer option. If you miss, you can try again without losing progress.' : 'Choose an answer below. If it is not right, read the hint and try again.',
+      `QUESTION ${quizIndex + 1} OF ${activeMission.questions.length}`);
+  }
+
+  function answerQuiz(event) {
+    const button = event.target.closest('[data-answer]');
+    if (!button) return;
+    const question = activeMission.questions[quizIndex];
+    const answer = question.choices[Number(button.dataset.answer)];
+    $('#quiz-options').querySelectorAll('.quiz-option').forEach((option) => option.classList.remove('is-wrong', 'is-correct'));
+    const feedback = $('#quiz-feedback');
+    feedback.hidden = false;
+    feedback.textContent = answer.reply;
+    feedback.classList.toggle('is-correct', Boolean(answer.correct));
+    feedback.classList.toggle('is-wrong', !answer.correct);
+    button.classList.toggle('is-correct', Boolean(answer.correct));
+    button.classList.toggle('is-wrong', !answer.correct);
+    if (!answer.correct) return;
+    $('#quiz-options').querySelectorAll('button').forEach((option) => { option.disabled = true; });
+    $('#quiz-next').hidden = false;
+    setGuidedTask(2, 'Good. Claim the next step.', activeMission.questions.length > 1
+      ? 'Continue to the next review question.'
+      : 'Claim the quest key to unlock the next stage of your journey.', `QUESTION ${quizIndex + 1} SOLVED`);
+  }
+
+  function advanceQuiz() {
+    if (quizIndex < activeMission.questions.length - 1) {
+      quizIndex += 1;
+      renderQuizQuestion();
+      return;
+    }
+    completeCurrentMission();
+    $('.journey-steps').hidden = true;
+    setGuidedTask(3, 'Quest cleared', 'The next quest is unlocked in your quest map.', 'QUEST COMPLETE', true);
   }
 
   function setMission(id) {
-    const found = missions.find((mission) => mission.id === id);
-    if (!found) return;
-    activeMission = found;
+    const index = missions.findIndex((mission) => mission.id === id);
+    if (index < 0 || !missionUnlocked(index)) return;
+    activeMission = missions[index];
+    quizIndex = 0;
+    timelineStep = 0;
+    timelineMode = null;
+    latestByteRun = null;
+    fuzzCaseFound = false;
     $('#code-details').open = false;
     $('#uaf-code-details').open = false;
     updateMissionCopy();
-    renderMissionList();
-    const isUaf = activeIsUaf();
-    byteLab.hidden = isUaf;
+    const isQuiz = activeMission.kind === 'quiz';
+    const isUaf = activeMission.kind === 'uaf';
+    $('.journey-steps').hidden = isQuiz;
+    quizLab.hidden = !isQuiz;
+    byteLab.hidden = !(isByteMission());
     uafLab.hidden = !isUaf;
-    $('#mission-complete-banner').hidden = !(progress[id].sawBug && progress[id].testedFix);
-    if (isUaf) {
+    $('#mission-complete-banner').hidden = !missionComplete(activeMission);
+    setDeviceState(false, activeMission.deviceDetail, false);
+    if (isQuiz) {
+      renderQuizQuestion();
+      $('#result-box').hidden = true;
+      $('#uaf-result').hidden = true;
+    } else if (isUaf) {
       codeEditorUaf.value = activeMission.code;
       resetUafTimeline();
       updateModePreview();
-      setDeviceState(false, activeMission.deviceDetail);
     } else {
       codeEditor.value = activeMission.code;
       resetByteLab();
-      updateModePreview();
     }
+    renderMissionList();
   }
 
   function createCell(label, index, value, neighbor, overflow) {
     const cell = document.createElement('div');
     cell.className = `memory-cell${neighbor ? ' neighbor' : ''}${value !== 0 ? ` written${overflow ? ' overflow-write' : ''}` : ''}`;
-    cell.style.setProperty('--stagger', `${Math.min(index, 19) * 30}ms`);
+    cell.style.setProperty('--stagger', `${Math.min(index, 19) * 24}ms`);
     cell.setAttribute('aria-label', `${label}, byte ${index}, value ${value.toString(16).padStart(2, '0')}`);
     const top = document.createElement('span');
     top.className = 'memory-cell-label';
@@ -283,8 +548,7 @@
   }
 
   function renderMemory(config, byteRun = latestByteRun) {
-    // Rebuild a bounded visual snapshot: the chosen buffer plus four nearby
-    // cells. These DOM cells represent model values, never process memory.
+    // This bounded drawing is a teaching snapshot, not process memory.
     const host = $('#memory-map');
     host.replaceChildren();
     const capacity = Math.max(1, Math.min(16, config.capacity || activeMission.capacity));
@@ -292,12 +556,14 @@
     const neighbor = config.neighbor || activeMission.neighbor;
     const bufferValues = Array(capacity).fill(0);
     const neighborValues = Array(4).fill(0);
-    const bufferOverflow = Array(capacity).fill(false);
     const neighborOverflow = Array(4).fill(false);
     if (byteRun && byteRun.snapshotCapacity === capacity && byteRun.buffer === buffer) {
       byteRun.visibleBytes.forEach(({ position, value }) => {
-        if (position < capacity) { bufferValues[position] = value; bufferOverflow[position] = position >= byteRun.capacity; }
-        else if (position < capacity + 4) { neighborValues[position - capacity] = value; neighborOverflow[position - capacity] = true; }
+        if (position < capacity) bufferValues[position] = value;
+        else if (position < capacity + 4) {
+          neighborValues[position - capacity] = value;
+          neighborOverflow[position - capacity] = true;
+        }
       });
     }
     const addGroup = (groupName, values, isNeighbor, overflowFlags) => {
@@ -309,7 +575,7 @@
       title.className = 'group-name';
       title.textContent = groupName;
       const range = document.createElement('span');
-      range.textContent = `${isNeighbor ? `+${capacity}` : '+00'} — +${(isNeighbor ? capacity + values.length - 1 : capacity - 1).toString(16).toUpperCase().padStart(2, '0')}`;
+      range.textContent = isNeighbor ? `+${capacity} to +${(capacity + values.length - 1).toString(16).toUpperCase()}` : `+00 to +${(capacity - 1).toString(16).toUpperCase().padStart(2, '0')}`;
       heading.append(title, range);
       const row = document.createElement('div');
       row.className = 'memory-cells';
@@ -317,15 +583,15 @@
       group.append(heading, row);
       host.append(group);
     };
-    addGroup(buffer, bufferValues, false, bufferOverflow);
+    addGroup(buffer, bufferValues, false, Array(capacity).fill(false));
     const divider = document.createElement('div');
     divider.className = 'overflow-divider';
     divider.textContent = 'BUFFER EDGE';
     host.append(divider);
     addGroup(neighbor, neighborValues, true, neighborOverflow);
     $('#memory-caption-text').textContent = byteRun && byteRun.beyondVisible > 0
-      ? `${byteRun.beyondVisible} additional byte${byteRun.beyondVisible === 1 ? '' : 's'} spilled beyond the visible neighbor cells.`
-      : 'Adjacent values are modeled for teaching; real layouts vary by compiler and system.';
+      ? `${byteRun.beyondVisible} more byte${byteRun.beyondVisible === 1 ? '' : 's'} passed the visible neighbor cells.`
+      : 'The layout is simplified so the boundary is easy to see.';
   }
 
   function runByteSimulation() {
@@ -333,14 +599,11 @@
     setByteModeIndicator(config.checked, !config.valid);
     if (!config.valid) {
       $('#code-details').open = true;
+      $('#result-box').hidden = false;
       latestByteRun = null;
-      renderMemory({ buffer: activeMission.buffer, capacity: activeMission.capacity, neighbor: activeMission.neighbor });
-      setResult($('#result-box'), 'danger', 'CODE SETTINGS NOT RECOGNIZED', config.error, 'NO MEMORY CHANGED', '⌕');
+      setResult($('#result-box'), 'danger', 'CHECK THE CODE SETTINGS', config.error, 'NO MEMORY CHANGED', 'i');
       return;
     }
-    // UTF-8 byte count makes the boundary meaningful for non-ASCII input too.
-    // A checked copy rejects the whole input; an unchecked copy only updates
-    // this capped teaching snapshot and cannot write outside the page model.
     const bytes = Array.from(new TextEncoder().encode(payloadInput.value));
     const overflowCount = Math.max(0, bytes.length - config.capacity);
     const blocked = config.checked && overflowCount > 0;
@@ -358,25 +621,79 @@
       effect: !blocked && overflowCount > 0 && bytes[config.capacity] !== 0,
       payloadBytes: bytes.length
     };
+    $('#result-box').hidden = false;
+    $('#memory-section').hidden = false;
     renderMemory(config, latestByteRun);
 
     if (overflowCount > 0 && config.checked) {
-      progress[activeMission.id].testedFix = true;
-      setDeviceState(false, activeMission.deviceDetail);
-      setResult($('#result-box'), 'success', 'BOUNDS CHECK BLOCKED INPUT', `The code rejected ${bytes.length} bytes before copying. ${config.neighbor} stayed unchanged; the simulated device is secure.`, 'PATCH VERIFIED', '✓');
+      if (progress[activeMission.id].sawBug) {
+        progress[activeMission.id].testedFix = true;
+        progress[activeMission.id].completed = true;
+        setDeviceState(false, activeMission.deviceDetail);
+        setResult($('#result-box'), 'success', 'BOUNDARY CHECK PASSED', `The ${bytes.length}-byte input was rejected before copying. ${config.neighbor} stayed unchanged.`, 'PATCH VERIFIED', '✓');
+        setGuidedTask(3, 'Patch verified', 'You saw the boundary failure, then proved the same input is rejected safely.', 'QUEST COMPLETE', true);
+      } else {
+        setDeviceState(false, activeMission.deviceDetail);
+        setResult($('#result-box'), 'success', 'INPUT REJECTED', 'The bounds check blocked this input. For the quest key, first switch the check off and observe why it matters.', 'SAFE CHECK', '✓');
+        setGuidedTask(1, 'See the bug first', 'Turn CHECK_LENGTH off in the code editor, run this same example, then patch it again.', 'STEP 1 OF 3');
+      }
     } else if (overflowCount > 0) {
       progress[activeMission.id].sawBug = true;
-      const effect = latestByteRun.effect;
-      setDeviceState(effect, effect ? `${config.neighbor.toUpperCase()}: CHANGED` : activeMission.deviceDetail);
-      setResult($('#result-box'), 'danger', 'OUT-OF-BOUNDS WRITE', `${bytes.length} bytes entered a ${config.capacity}-byte buffer. ${activeMission.effect}`, effect ? 'SIMULATED STATE CHANGED' : 'BOUNDARY CROSSED', '⚠');
+      $('#code-details').open = true;
+      setDeviceState(latestByteRun.effect, latestByteRun.effect ? `${config.neighbor.toUpperCase()}: CHANGED` : activeMission.deviceDetail);
+      let message = `${bytes.length} bytes entered a ${config.capacity}-byte buffer. ${activeMission.effect}`;
+      let eyebrow = 'BUFFER BOUNDARY CROSSED';
+      if (activeMission.kind === 'sanitizer') {
+        eyebrow = 'SIMULATED ASAN REPORT';
+        message = `AddressSanitizer would report a ${activeMission.buffer} write at offset ${config.capacity}, past this ${config.capacity}-byte buffer. No real program was run.`;
+      }
+      setResult($('#result-box'), 'danger', eyebrow, message, 'SIMULATED BUG', '⚠');
+      if (activeMission.kind === 'fuzzer') {
+        setGuidedTask(2, 'Inspect the smallest failing input', 'The fuzzer found the first length past the boundary. Open the code editor, turn CHECK_LENGTH on, then rerun the fuzzer.');
+      } else {
+        setGuidedTask(2, 'Inspect the changed value', `Look below the buffer divider. Then change CHECK_LENGTH = false to true in the code editor and run this same input again.`);
+      }
     } else if (bytes.length === 0) {
       setDeviceState(false, activeMission.deviceDetail);
-      setResult($('#result-box'), 'idle', 'NO INPUT TO COPY', 'Enter a few characters, then run again to watch their bytes land in the buffer.', 'AWAITING INPUT', '⌁');
+      setResult($('#result-box'), 'idle', 'NO INPUT TO CHECK', 'Add an input, then run the example again.', 'WAITING FOR INPUT', '·');
+      setGuidedTask(1, 'Try the example input', 'The field is empty. Use the example or enter a value that is longer than the buffer.');
     } else {
       setDeviceState(false, activeMission.deviceDetail);
-      setResult($('#result-box'), 'success', 'INPUT STAYED IN BOUNDS', `${bytes.length} bytes fit in the ${config.capacity}-byte buffer. The neighboring ${config.neighbor} was left alone.`, 'NO OVERFLOW', '✓');
+      setResult($('#result-box'), 'success', 'INPUT STAYED IN BOUNDS', `${bytes.length} bytes fit in the ${config.capacity}-byte buffer. ${config.neighbor} stayed unchanged.`, 'NO OVERFLOW', '✓');
+      setGuidedTask(1, 'Try one more byte', 'This input fits. Add one byte in “Try a different input” to see what happens at the edge.');
     }
     updateCompletion();
+    updateRunButton(config);
+  }
+
+  function runFuzzer() {
+    const config = parseByteSettings(codeEditor.value);
+    if (!config.valid) {
+      $('#code-details').open = true;
+      setResult($('#result-box'), 'danger', 'CHECK THE CODE SETTINGS', config.error, 'NO MEMORY CHANGED', 'i');
+      return;
+    }
+    // A deterministic length sweep models a tiny fuzzer without running any
+    // student code or generating traffic. The first failing case is minimal.
+    const testedInputs = Array.from({ length: config.capacity + 4 }, (_, index) => 'A'.repeat(index + 1));
+    payloadInput.value = testedInputs.find((input) => new TextEncoder().encode(input).length > config.capacity) || '';
+    payloadInput.dispatchEvent(new Event('input', { bubbles: true }));
+    fuzzCaseFound = true;
+    if (!config.checked) {
+      runByteSimulation();
+      setResult($('#result-box'), 'danger', 'FUZZER FOUND A COUNTEREXAMPLE', `It tried ${testedInputs.length} input lengths. The shortest failure is ${payloadInput.value.length} bytes: “${payloadInput.value}”.`, 'SMALLEST FAILING CASE', '⚠');
+      setGuidedTask(2, 'Inspect the smallest failing input', 'Open the code editor, turn CHECK_LENGTH on, then rerun the fuzzer to check the same input set.');
+    } else if (progress[activeMission.id].sawBug) {
+      runByteSimulation();
+      progress[activeMission.id].testedFix = true;
+      progress[activeMission.id].completed = true;
+      setResult($('#result-box'), 'success', 'FUZZ SET PASSED', `All ${testedInputs.length} modeled input lengths stayed within the checked boundary. Keep the shortest failing case as a regression test.`, 'PATCH VERIFIED', '✓');
+      setGuidedTask(3, 'Parser patch verified', 'The minimized failing input now gets rejected before the copy. The next quest is unlocked.', 'QUEST COMPLETE', true);
+      updateCompletion();
+    } else {
+      runByteSimulation();
+    }
+    updateRunButton(config);
   }
 
   function codeWithSetting(source, setting, value) {
@@ -386,62 +703,62 @@
   }
 
   function loadByteDemo(checkLength) {
-    // Facilitator presets change the same editable setting and use the normal
-    // student-facing simulation path, so the demonstration stays comparable.
-    const expected = activeMission;
-    codeEditor.value = expected.code;
-    codeEditor.value = codeWithSetting(codeEditor.value, 'CHECK_LENGTH', checkLength);
+    codeEditor.value = codeWithSetting(activeMission.code, 'CHECK_LENGTH', checkLength);
     const config = parseByteSettings(codeEditor.value);
-    payloadInput.value = expected.id === 'heap' ? 'TEMP=OK' : 'A'.repeat(config.valid ? config.capacity + 1 : expected.capacity + 1);
+    payloadInput.value = 'A'.repeat(config.valid ? config.capacity + 1 : activeMission.capacity + 1);
+    payloadInput.dispatchEvent(new Event('input', { bubbles: true }));
     updateModePreview();
-    runByteSimulation();
+    if (activeMission.kind === 'fuzzer') runFuzzer();
+    else runByteSimulation();
   }
 
   function loadUafDemo(clearPointer) {
-    // Run the four fixed timeline steps through the ordinary transition logic
-    // so facilitator presets produce the same outcome as manual stepping.
-    codeEditorUaf.value = activeMission.code;
-    codeEditorUaf.value = codeWithSetting(codeEditorUaf.value, 'CLEAR_POINTER', clearPointer);
+    codeEditorUaf.value = codeWithSetting(activeMission.code, 'CLEAR_POINTER', clearPointer);
     timelineStep = 0;
     timelineMode = null;
-    timelineOutcome = null;
+    resetUafTimeline();
     updateModePreview();
     while (timelineStep < 4) advanceUafTimeline();
   }
 
   function setTextResultForInvalidUaf(message) {
-    setResult($('#uaf-result'), 'danger', 'CODE SETTINGS NOT RECOGNIZED', message, 'NO POINTER READ', '⌕');
+    setResult($('#uaf-result'), 'danger', 'CHECK THE CODE SETTINGS', message, 'NO POINTER READ', 'i');
   }
 
   function resetUafTimeline() {
     timelineStep = 0;
     timelineMode = null;
-    timelineOutcome = null;
     renderUafTimeline();
-    setResult($('#uaf-result'), 'idle', 'READY WHEN YOU ARE', 'The object and pointer are waiting in the simulated heap.', 'AWAITING INPUT', '⌁');
+    $('#uaf-result').hidden = true;
     $('#uaf-next').disabled = false;
-    $('#uaf-next').querySelector('span').textContent = 'Next step';
+    $('#uaf-next').querySelector('span').textContent = 'Start timeline';
     $('#uaf-instruction').textContent = 'Step through each event to see what the saved pointer refers to.';
-    setDeviceState(false, activeMission.deviceDetail);
+    setDeviceState(false, activeMission.deviceDetail, false);
+    const settings = parseUafSettings();
+    if (progress.uaf.sawBug && settings.valid && settings.clearsPointer && !progress.uaf.testedFix) {
+      setGuidedTask(3, 'Replay with the pointer cleared', 'Step through all four events again. The final read should be blocked because the saved pointer is NULL.');
+    } else if (progress.uaf.sawBug && !progress.uaf.testedFix) {
+      setGuidedTask(3, 'Patch the dangling pointer', 'Open the code editor, change CLEAR_POINTER = false to true, then reset and replay the timeline.');
+    } else {
+      setGuidedTask(1, 'Start the timeline', 'Select Start timeline. Follow the object and saved pointer through four events.');
+    }
   }
 
   function renderUafTimeline() {
-    // This is a fixed teaching story with a fictional address and objects;
-    // rendering it never allocates, frees, or dereferences real memory.
     const timeline = $('#uaf-timeline');
     timeline.replaceChildren();
     const labels = [
-      ['01', 'Allocate', 'Create status = SAFE'],
-      ['02', 'Release', 'Object lifetime ends'],
-      ['03', 'Reuse slot', 'A new object takes that address'],
-      ['04', 'Read pointer', 'Follow the old address']
+      ['01', 'Allocate', 'Live object'],
+      ['02', 'Release', 'Lifetime ends'],
+      ['03', 'Reuse slot', 'New object'],
+      ['04', 'Read pointer', 'Follow address']
     ];
     labels.forEach((step, index) => {
       const card = document.createElement('div');
       const isCurrent = timelineStep === index + 1;
-      const isFutureBug = timelineStep >= 2 && index === 1 && timelineMode === false;
-      const isFutureFix = timelineStep >= 2 && index === 1 && timelineMode === true;
-      card.className = `timeline-step${isCurrent ? ' is-active' : ''}${isFutureBug ? ' is-bug' : ''}${isFutureFix ? ' is-fixed' : ''}`;
+      const isBug = timelineStep >= 2 && index === 1 && timelineMode === false;
+      const isFixed = timelineStep >= 2 && index === 1 && timelineMode === true;
+      card.className = `timeline-step${isCurrent ? ' is-active' : ''}${isBug ? ' is-bug' : ''}${isFixed ? ' is-fixed' : ''}`;
       const number = document.createElement('span');
       number.className = 'timeline-number';
       number.textContent = step[0];
@@ -461,6 +778,7 @@
     const pointerStale = !fixed && timelineStep >= 2;
     const visual = $('#pointer-visual');
     visual.replaceChildren();
+    visual.hidden = timelineStep === 0;
     const object = document.createElement('div');
     object.className = `pointer-card${objectReused ? ' stale' : ''}`;
     const objectLabel = document.createElement('span');
@@ -500,96 +818,54 @@
       setTextResultForInvalidUaf(settings.error);
       return;
     }
-    if (timelineMode !== null && timelineMode !== settings.clearsPointer) {
-      timelineStep = 0;
-      timelineOutcome = null;
-    }
+    // Switching the modeled cleanup setting starts a fresh four-step story.
+    if (timelineMode !== null && timelineMode !== settings.clearsPointer) timelineStep = 0;
     timelineMode = settings.clearsPointer;
-    if (timelineStep >= 4) {
-      $('#uaf-instruction').textContent = 'Timeline complete. Change CLEAR_POINTER and reset or step again to compare the other version.';
-      return;
-    }
+    if (timelineStep >= 4) return;
     timelineStep += 1;
     renderUafTimeline();
     if (timelineStep === 1) {
       $('#uaf-instruction').textContent = 'The demo service allocated a status object at address 0x1A20.';
-      setResult($('#uaf-result'), 'idle', 'OBJECT ALLOCATED', 'The pointer refers to a live object that reports SAFE.', 'STEP 1 OF 4', '↗');
+      setResult($('#uaf-result'), 'idle', 'OBJECT ALLOCATED', 'The pointer refers to a live object that reports SAFE.', 'STEP 1 OF 4', '1');
+      setGuidedTask(1, 'Object allocated', 'Continue to the next event. The pointer currently refers to the live status object.');
     } else if (timelineStep === 2) {
-      $('#uaf-instruction').textContent = settings.clearsPointer ? 'The object was released and CLEAR_POINTER set the saved pointer to NULL.' : 'The object was released, but the saved pointer still holds its old address.';
-      setResult($('#uaf-result'), settings.clearsPointer ? 'success' : 'danger', settings.clearsPointer ? 'POINTER CLEARED' : 'DANGLING POINTER', settings.clearsPointer ? 'The code no longer keeps a reference to the released object.' : 'The pointer still says 0x1A20, even though the object lifetime has ended.', 'STEP 2 OF 4', settings.clearsPointer ? '✓' : '⚠');
+      const description = settings.clearsPointer ? 'The object was released and the saved pointer was cleared.' : 'The object was released, but the saved pointer still holds its old address.';
+      $('#uaf-instruction').textContent = description;
+      setResult($('#uaf-result'), settings.clearsPointer ? 'success' : 'danger', settings.clearsPointer ? 'POINTER CLEARED' : 'DANGLING POINTER', settings.clearsPointer ? description : 'The pointer still says 0x1A20, even though the object lifetime has ended.', 'STEP 2 OF 4', settings.clearsPointer ? '✓' : '2');
+      setGuidedTask(1, 'The object was released', 'Continue. The allocator may give this address to a different object.');
     } else if (timelineStep === 3) {
       $('#uaf-instruction').textContent = 'The simulated allocator reused address 0x1A20 for a different demo value.';
-      setResult($('#uaf-result'), settings.clearsPointer ? 'success' : 'danger', settings.clearsPointer ? 'ADDRESS REUSED SAFELY' : 'SAME ADDRESS, NEW OBJECT', settings.clearsPointer ? 'The old pointer was cleared, so the service has no stale route to the new object.' : 'The saved address now contains a different object: LOCK_STATE = OPEN.', 'STEP 3 OF 4', settings.clearsPointer ? '✓' : '⚠');
-    } else {
-      timelineOutcome = settings.clearsPointer ? 'blocked' : 'stale-read';
-      if (settings.clearsPointer) {
-        progress[activeMission.id].testedFix = true;
-        $('#uaf-instruction').textContent = 'The read was blocked because the pointer is NULL. The old object cannot be accessed.';
-        setResult($('#uaf-result'), 'success', 'STALE READ BLOCKED', 'The simulator refused the read after release. The stale pointer path is closed.', 'PATCH VERIFIED', '✓');
-        setDeviceState(false, 'SAFE: STALE READ BLOCKED');
+      setResult($('#uaf-result'), settings.clearsPointer ? 'success' : 'danger', settings.clearsPointer ? 'ADDRESS REUSED SAFELY' : 'ADDRESS REUSED', settings.clearsPointer ? 'The old pointer was cleared, so it cannot reach the new object.' : 'The same address now contains a different object: LOCK_STATE = OPEN.', 'STEP 3 OF 4', '3');
+      setGuidedTask(2, 'The same address has new data', 'Inspect the pointer card. What would happen if the old pointer follows this reused address? Continue to test it.');
+    } else if (settings.clearsPointer) {
+      $('#uaf-instruction').textContent = 'The read was blocked because the pointer is NULL.';
+      setResult($('#uaf-result'), 'success', 'STALE READ BLOCKED', 'The simulator refused the read after release. The old object cannot be accessed.', 'STEP 4 OF 4', '✓');
+      setDeviceState(false, 'SAFE: STALE READ BLOCKED');
+      if (progress.uaf.sawBug) {
+        progress.uaf.testedFix = true;
+        progress.uaf.completed = true;
+        setGuidedTask(3, 'Pointer cleanup verified', 'The cleared pointer blocked the stale read. The next quest is unlocked.', 'QUEST COMPLETE', true);
       } else {
-        progress[activeMission.id].sawBug = true;
-        $('#uaf-instruction').textContent = 'The old pointer read the new object at that reused address. This is a simulated use-after-free.';
-        setResult($('#uaf-result'), 'danger', 'USE-AFTER-FREE SIMULATED', 'The stale pointer read LOCK_STATE = OPEN from the reused slot. No real object or device was touched.', 'SIMULATED STATE CHANGED', '⚠');
-        setDeviceState(true, 'LOCK STATE: OPEN');
+        setGuidedTask(1, 'Show why the fix matters', 'For the quest key, set CLEAR_POINTER to false and replay the timeline to observe the dangling pointer first.');
       }
+    } else {
+      progress.uaf.sawBug = true;
+      $('#uaf-code-details').open = true;
+      $('#uaf-instruction').textContent = 'The old pointer read the new object at that reused address.';
+      setResult($('#uaf-result'), 'danger', 'USE-AFTER-FREE SIMULATED', 'The stale pointer read LOCK_STATE = OPEN from the reused slot. No real object or device was touched.', 'STEP 4 OF 4', '⚠');
+      setDeviceState(true, 'LOCK STATE: OPEN');
+      setGuidedTask(2, 'Patch the dangling pointer', 'Open the code editor, change CLEAR_POINTER = false to true, reset the timeline, and replay all four events.');
     }
     $('#uaf-next').querySelector('span').textContent = timelineStep === 4 ? 'Timeline complete' : 'Next step';
     $('#uaf-next').disabled = timelineStep === 4;
     if (timelineStep === 4) updateCompletion();
   }
 
-  missionList.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-mission]');
-    if (button) setMission(button.dataset.mission);
-  });
-  codeEditor.addEventListener('input', updateModePreview);
-  codeEditorUaf.addEventListener('input', updateModePreview);
-  payloadInput.addEventListener('input', () => {
-    const count = new TextEncoder().encode(payloadInput.value).length;
-    $('#byte-count').textContent = `${count} ${count === 1 ? 'BYTE' : 'BYTES'}`;
-  });
-  $('#run-button').addEventListener('click', runByteSimulation);
-  payloadInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') runByteSimulation(); });
-  $('#clear-button').addEventListener('click', resetByteLab);
-  $('#fill-edge').addEventListener('click', () => fillPayloadToLimit(false));
-  $('#fill-overflow').addEventListener('click', () => fillPayloadToLimit(true));
-  $('#uaf-next').addEventListener('click', advanceUafTimeline);
-  $('#uaf-reset').addEventListener('click', resetUafTimeline);
-  $('#facilitator-toggle').addEventListener('click', (event) => {
-    const button = event.currentTarget;
-    const panel = $('#facilitator-panel');
-    const willOpen = button.getAttribute('aria-expanded') !== 'true';
-    button.setAttribute('aria-expanded', String(willOpen));
-    panel.hidden = !willOpen;
-  });
-  $('#host-show-bug').addEventListener('click', () => activeIsUaf() ? loadUafDemo(false) : loadByteDemo(false));
-  $('#host-show-fix').addEventListener('click', () => activeIsUaf() ? loadUafDemo(true) : loadByteDemo(true));
-  $('#host-next').addEventListener('click', () => {
-    const index = missions.findIndex((mission) => mission.id === activeMission.id);
-    setMission(missions[(index + 1) % missions.length].id);
-  });
-  $('#host-reset').addEventListener('click', () => {
-    if (activeIsUaf()) {
-      codeEditorUaf.value = activeMission.code;
-      resetUafTimeline();
-      updateModePreview();
-    } else {
-      codeEditor.value = activeMission.code;
-      resetByteLab();
-      updateModePreview();
-    }
-  });
-  $('#next-lab-button').addEventListener('click', () => {
-    const index = missions.findIndex((mission) => mission.id === activeMission.id);
-    setMission(missions[(index + 1) % missions.length].id);
-  });
-
   function fillPayloadToLimit(addExtraByte) {
     const settings = parseByteSettings(codeEditor.value);
     if (!settings.valid) {
       $('#code-details').open = true;
-      setResult($('#result-box'), 'danger', 'CHECK THE CODE SETTINGS', settings.error, 'NO MEMORY CHANGED', '⌕');
+      setResult($('#result-box'), 'danger', 'CHECK THE CODE SETTINGS', settings.error, 'NO MEMORY CHANGED', 'i');
       codeEditor.focus();
       return;
     }
@@ -598,10 +874,66 @@
     payloadInput.focus();
   }
 
+  function continueCampaign() {
+    const index = missions.findIndex((mission) => mission.id === activeMission.id);
+    if (!missionComplete(activeMission)) return;
+    if (index < missions.length - 1) setMission(missions[index + 1].id);
+  }
+
+  missionList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-mission]');
+    if (!button || button.disabled) return;
+    setMission(button.dataset.mission);
+    $('.campaign-map').open = false;
+  });
+  $('#quiz-options').addEventListener('click', answerQuiz);
+  $('#quiz-next').addEventListener('click', advanceQuiz);
+  codeEditor.addEventListener('input', updateModePreview);
+  codeEditorUaf.addEventListener('input', () => {
+    const timelineWasComplete = timelineStep >= 4;
+    updateModePreview();
+    if (timelineWasComplete) resetUafTimeline();
+  });
+  payloadInput.addEventListener('input', () => {
+    const count = new TextEncoder().encode(payloadInput.value).length;
+    $('#byte-count').textContent = `${count} ${count === 1 ? 'BYTE' : 'BYTES'}`;
+  });
+  $('#run-button').addEventListener('click', () => activeMission.kind === 'fuzzer' ? runFuzzer() : runByteSimulation());
+  payloadInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') activeMission.kind === 'fuzzer' ? runFuzzer() : runByteSimulation();
+  });
+  $('#clear-button').addEventListener('click', resetByteLab);
+  $('#fill-edge').addEventListener('click', () => fillPayloadToLimit(false));
+  $('#fill-overflow').addEventListener('click', () => fillPayloadToLimit(true));
+  $('#uaf-next').addEventListener('click', advanceUafTimeline);
+  $('#uaf-reset').addEventListener('click', resetUafTimeline);
+  $('#next-lab-button').addEventListener('click', continueCampaign);
+  $('#facilitator-toggle').addEventListener('click', (event) => {
+    const button = event.currentTarget;
+    const panel = $('#facilitator-panel');
+    const willOpen = button.getAttribute('aria-expanded') !== 'true';
+    button.setAttribute('aria-expanded', String(willOpen));
+    panel.hidden = !willOpen;
+  });
+  $('#host-show-bug').addEventListener('click', () => {
+    if (activeMission.kind === 'uaf') loadUafDemo(false);
+    else if (isByteMission()) loadByteDemo(false);
+    else setGuidedTask(1, 'Use the question to lead the room', 'Ask participants to choose an answer, then discuss the field notes below.');
+  });
+  $('#host-show-fix').addEventListener('click', () => {
+    if (activeMission.kind === 'uaf') loadUafDemo(true);
+    else if (isByteMission()) loadByteDemo(true);
+    else setGuidedTask(1, 'Discuss a safer choice', 'Invite the room to explain which answer reduces memory risk and how to verify it.');
+  });
+  $('#host-next').addEventListener('click', () => {
+    const index = missions.findIndex((mission) => mission.id === activeMission.id);
+    if (index < missions.length - 1 && missionUnlocked(index + 1)) setMission(missions[index + 1].id);
+    else setGuidedTask(1, 'Complete this quest first', 'Solve the current task to unlock the next stage of the campaign.');
+  });
+  $('#host-reset').addEventListener('click', () => setMission(activeMission.id));
+
   const motionToggle = $('#motion-toggle');
   const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  // Remember only the motion preference in this browser. Lab progress and
-  // workshop inputs remain in memory for the current page session.
   function savedMotionPreference() {
     try { return window.localStorage.getItem('bytesafe-motion'); }
     catch { return null; }
@@ -609,10 +941,8 @@
   let motionEnabled = savedMotionPreference() === 'on' ? true : savedMotionPreference() === 'off' ? false : !reducedMotionQuery.matches;
   function applyMotionPreference() {
     document.body.classList.toggle('motion-off', !motionEnabled);
-    document.body.classList.toggle('motion-on', motionEnabled);
     motionToggle.setAttribute('aria-pressed', String(motionEnabled));
     $('#motion-label').textContent = motionEnabled ? 'Motion on' : 'Motion off';
-    motionToggle.title = motionEnabled ? 'Turn interface animations off' : 'Turn interface animations on';
   }
   motionToggle.addEventListener('click', () => {
     motionEnabled = !motionEnabled;
@@ -627,11 +957,8 @@
       }
     });
   }
-  applyMotionPreference();
 
-  renderMissionList();
+  applyMotionPreference();
   updateMissionCopy();
-  codeEditor.value = activeMission.code;
-  resetByteLab();
-  updateModePreview();
+  setMission(missions.find((mission) => !missionComplete(mission))?.id || missions[missions.length - 1].id);
 })();
