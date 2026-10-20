@@ -3,10 +3,38 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f7f8f6" />
+    <meta name="theme-color" content="#171d1d" />
     <meta name="description" content="An eight-quest, browser-only workshop game for learning memory safety." />
     <title>ByteSafe Lab — Memory Keeper Campaign</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400..800&display=swap" />
+    <script>
+      // Apply the saved theme before the stylesheet paints to prevent a light flash.
+      (() => {
+        // Exact hostnames select the UI only. Vercel Deployment Protection must
+        // protect the facilitator deployment; this client-side check is not auth.
+        // Add the final deployment hostnames here (hostname only, no scheme/path).
+        const viewHosts = {
+          participant: ['bytesafelab.vercel.app'],
+          facilitator: [],
+        };
+        const normalizeHostname = (hostname) => hostname.toLowerCase().replace(/\.$/, '');
+        const hostViews = new Map();
+        for (const hostname of viewHosts.participant) hostViews.set(normalizeHostname(hostname), 'participant');
+        for (const hostname of viewHosts.facilitator) hostViews.set(normalizeHostname(hostname), 'facilitator');
+        const currentHostname = normalizeHostname(window.location.hostname);
+        document.documentElement.dataset.view = hostViews.get(currentHostname) || 'participant';
+        let theme = 'dark';
+        try {
+          if (localStorage.getItem('bytesafe-theme') === 'light') theme = 'light';
+        } catch { /* Dark remains the first-visit default when storage is unavailable. */ }
+        document.documentElement.dataset.theme = theme;
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) themeColor.content = theme === 'dark' ? '#171d1d' : '#f4f2ed';
+      })();
+    </script>
     <link rel="stylesheet" href="style.css" />
     <script src="game.js" defer></script>
   </head>
@@ -16,11 +44,12 @@
       <header class="topbar">
         <a class="brand" href="#main" aria-label="ByteSafe Lab home">
           <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
-          <span>BYTE<span class="brand-slash">/</span>SAFE</span>
+          <span>BYTE<span class="brand-slash">/</span>SAFE <span class="brand-suffix">LAB</span></span>
         </a>
-        <span class="topbar-center">The Bytebound Archive · Memory Keeper campaign</span>
+        <span class="topbar-center">The Bytebound Archive <span aria-hidden="true">/</span> Memory safety workshop</span>
         <div class="topbar-actions">
           <button class="facilitator-toggle" id="facilitator-toggle" type="button" aria-expanded="false" aria-controls="facilitator-panel"><span>Facilitator</span><span class="chevron" aria-hidden="true">⌄</span></button>
+          <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode"><svg class="theme-icon icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.6 8.6 0 1 0 20.2 15.1Z" /></svg><svg class="theme-icon icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></svg><span id="theme-label">Dark mode</span></button>
           <button class="motion-toggle" id="motion-toggle" type="button" aria-label="Toggle interface animations" aria-pressed="true" title="Turn interface animations on or off"><span aria-hidden="true">◌</span><span id="motion-label">Motion on</span></button>
         </div>
       </header>
@@ -28,24 +57,45 @@
       <main id="main">
         <section class="intro-row" aria-labelledby="page-title">
           <div class="intro-copy">
-            <div class="eyebrow">YOUR WORKSHOP QUEST</div>
+            <div class="eyebrow">Your workshop quest</div>
             <h1 id="page-title">The Bytebound Archive</h1>
             <p>You are the Memory Keeper. Complete eight short quests to find the bugs, protect the archive, and earn your patch badge.</p>
           </div>
-          <div class="campaign-summary"><span class="campaign-rank" id="campaign-rank">MEMORY KEEPER · RANK 1</span><b><span id="campaign-complete-count">0</span> / 8 quests</b><div class="progress-track" aria-hidden="true"><span id="progress-fill"></span></div><details class="campaign-map"><summary>View quest map <span id="mission-count">01 / 08</span></summary><nav class="mission-list" id="mission-list" aria-label="Campaign quests"></nav></details></div>
         </section>
 
         <section class="facilitator-panel" id="facilitator-panel" hidden aria-labelledby="facilitator-heading">
-          <div class="facilitator-panel-head"><div><span class="panel-kicker">PRESENTER CONTROLS</span><h2 id="facilitator-heading">Facilitator tools</h2></div><p>Load a quick example on this screen. Each student's progress stays in their own tab.</p></div>
+          <div class="facilitator-panel-head"><div><span class="panel-kicker">Presenter controls</span><h2 id="facilitator-heading">Facilitator tools</h2></div><p>Load a quick example on this screen. Each student's progress stays in their own tab.</p></div>
           <div class="facilitator-actions">
-            <button type="button" class="host-action host-action-primary" id="host-show-bug"><b>Show the bug</b><small>Run the vulnerable example</small></button>
+            <button type="button" class="host-action" id="host-show-bug"><b>Show the bug</b><small>Run the vulnerable example</small></button>
             <button type="button" class="host-action" id="host-show-fix"><b>Show the fix</b><small>Turn on the safety check</small></button>
             <button type="button" class="host-action" id="host-next"><b>Next unlocked quest</b><small>Continue the campaign</small></button>
             <button type="button" class="host-action host-action-reset" id="host-reset"><b>Reset this quest</b><small>Start the task again</small></button>
+            <button type="button" class="host-action" id="host-toggle-notes" aria-pressed="false"><b>Show field notes</b><small>Reveal or conceal the explanation</small></button>
+            <button type="button" class="host-action" id="host-presenter-toggle" aria-pressed="false"><b>Presentation view</b><small>Give the current task more room</small></button>
+          </div>
+          <div class="host-challenge-settings">
+            <label class="timer-setting"><input id="challenge-timer-enabled" type="checkbox" /> <span><b>Enable challenge timer</b><small>Optional countdown; students may continue after time runs out.</small></span></label>
+            <label for="challenge-timer-minutes">Minutes</label>
+            <input id="challenge-timer-minutes" type="number" min="1" max="30" value="5" inputmode="numeric" />
+            <p>Timer preference applies to this browser only. Challenge results are not shared.</p>
           </div>
         </section>
 
-        <section class="quest-panel" aria-labelledby="mission-title">
+        <div class="workspace-shell">
+          <aside class="campaign-rail" aria-label="Campaign progress and quest navigation">
+            <div class="campaign-summary">
+              <span class="campaign-rank" id="campaign-rank">MEMORY KEEPER · RANK 1</span>
+              <b class="campaign-count"><span id="campaign-complete-count">0</span> / 8 quests</b>
+              <div class="progress-track" aria-hidden="true"><span id="progress-fill"></span></div>
+              <details class="campaign-map" open>
+                <summary>Quest map <span id="mission-count">01 / 08</span></summary>
+                <nav class="mission-list" id="mission-list" aria-label="Campaign quests"></nav>
+              </details>
+            </div>
+            <p class="rail-note"><span class="rail-note-mark" aria-hidden="true">i</span> All devices and memory shown here are simulated.</p>
+          </aside>
+
+          <section class="quest-panel" aria-labelledby="mission-title">
           <header class="mission-heading">
             <div class="mission-meta"><span id="mission-kicker">QUEST 01 / MEMORY BASICS</span><span class="level-pill" id="level-pill">QUEST 1</span></div>
             <h2 id="mission-title">Map the Memory</h2>
@@ -55,23 +105,160 @@
 
           <section class="guided-task" aria-labelledby="task-title" aria-live="polite">
             <div class="journey-steps" aria-label="Quest steps">
-              <span class="journey-step is-current" data-journey-step="1"><i>1</i> Run it</span>
-              <span class="journey-step" data-journey-step="2"><i>2</i> Inspect</span>
-              <span class="journey-step" data-journey-step="3"><i>3</i> Patch</span>
+              <span class="journey-step is-current" data-journey-step="1"><i>1</i> Understand</span>
+              <span class="journey-step" data-journey-step="2"><i>2</i> Run</span>
+              <span class="journey-step" data-journey-step="3"><i>3</i> Inspect</span>
+              <span class="journey-step" data-journey-step="4"><i>4</i> Fix</span>
+              <span class="journey-step" data-journey-step="5"><i>5</i> Verify</span>
             </div>
-            <div class="task-copy"><span class="task-kicker" id="task-kicker">YOUR NEXT ACTION</span><h3 id="task-title">Choose the right byte count</h3><p id="task-description">A char stores one character. How many byte boxes should it use?</p></div>
+            <div class="task-row">
+              <div class="task-copy"><span class="task-kicker" id="task-kicker">Your next action</span><h3 id="task-title">Choose the right byte count</h3><p id="task-description">A char stores one character. How many byte boxes should it use?</p></div>
+              <div class="task-actions">
+                <button type="button" class="text-button acknowledge-goal" id="acknowledge-goal">I understand the goal</button>
+                <button type="button" class="challenge-launch" id="challenge-launch" hidden>Start the workshop challenge <span aria-hidden="true">→</span></button>
+              </div>
+            </div>
+          </section>
+
+          <section class="quest-activity map-activity" id="memory-map-activity" hidden aria-labelledby="memory-map-title">
+            <div class="activity-heading"><div><span class="section-overline">Address layout</span><h3 id="memory-map-title">Place the letters in memory</h3></div><span class="activity-step">QUEST 01</span></div>
+            <p class="activity-copy">The word <code>CAT</code> begins at <code>0x1000</code>. Select the byte that stores <b>T</b>, then predict the first address after the word.</p>
+            <div class="address-grid" id="address-grid" role="group" aria-label="Simulated address cells for CAT and the following bytes"></div>
+            <label class="activity-label" for="next-address-prediction">What address comes immediately after the three letters?</label>
+            <input class="address-answer" id="next-address-prediction" type="text" inputmode="text" autocomplete="off" placeholder="e.g. 0x1003" aria-describedby="memory-map-feedback" />
+            <button type="button" class="next-lab-button" id="check-memory-map">Check the layout</button>
+            <p id="memory-map-feedback" role="status" aria-live="polite">Choose the address holding T and enter the next byte address.</p>
+            <details class="activity-hint"><summary>Need a hint?</summary><p>Each character uses one byte, so the address increases by one for each letter.</p></details>
+          </section>
+
+          <section class="quest-activity stack-prediction" id="stack-prediction-activity" hidden aria-labelledby="stack-prediction-title">
+            <div class="activity-heading"><div><span class="section-overline">Before the run</span><h3 id="stack-prediction-title">Predict where byte nine goes</h3></div><span class="activity-step">QUEST 02</span></div>
+            <p class="activity-copy">The username buffer covers offsets <code>+00</code> through <code>+07</code>. Predict the ninth byte’s destination and what it can affect in this simplified layout.</p>
+            <div class="prediction-fields">
+              <label for="stack-offset-prediction">Ninth byte offset
+                <select id="stack-offset-prediction"><option value="">Choose an offset</option><option value="7">+07 · final buffer byte</option><option value="8">+08 · first byte after the buffer</option><option value="9">+09 · second byte after the buffer</option></select>
+              </label>
+              <label for="stack-neighbor-prediction">Neighboring value
+                <select id="stack-neighbor-prediction"><option value="">Choose an outcome</option><option value="buffer">It stays in the username buffer</option><option value="flag">It reaches the simulated is_admin value</option><option value="device">It changes a real smart lock</option></select>
+              </label>
+            </div>
+            <button type="button" class="next-lab-button" id="check-stack-prediction">Record prediction</button>
+            <p id="stack-prediction-feedback" role="status" aria-live="polite">A prediction is a hypothesis; the memory map will let you compare it with the run.</p>
+            <details class="activity-hint"><summary>Need a hint?</summary><p>Count offsets from zero. The first position after an eight-byte range is +08.</p></details>
+          </section>
+
+          <section class="quest-activity packet-activity" id="heap-triage-activity" hidden aria-labelledby="heap-triage-title">
+            <div class="activity-heading"><div><span class="section-overline">Packet triage</span><h3 id="heap-triage-title">Which packets should this parser accept?</h3></div><span class="activity-step">QUEST 03</span></div>
+            <p class="activity-copy">Classify each sample using its byte length and record shape. Then try the samples against the parser model.</p>
+            <div class="packet-case-list">
+              <article class="packet-case" data-heap-case="short"><code>TEMP=7</code><small>6 bytes</small><fieldset><legend>Decision</legend><label><input type="radio" name="heap-short" value="accept" /> Accept</label><label><input type="radio" name="heap-short" value="reject" /> Reject</label></fieldset><button type="button" class="text-button" data-heap-load="TEMP=7">Try sample</button></article>
+              <article class="packet-case" data-heap-case="valid"><code>TEMP=24</code><small>7 bytes</small><fieldset><legend>Decision</legend><label><input type="radio" name="heap-valid" value="accept" /> Accept</label><label><input type="radio" name="heap-valid" value="reject" /> Reject</label></fieldset><button type="button" class="text-button" data-heap-load="TEMP=24">Try sample</button></article>
+              <article class="packet-case" data-heap-case="boundary"><code>TEMP=999</code><small>8 bytes</small><fieldset><legend>Decision</legend><label><input type="radio" name="heap-boundary" value="accept" /> Accept</label><label><input type="radio" name="heap-boundary" value="reject" /> Reject</label></fieldset><button type="button" class="text-button" data-heap-load="TEMP=999">Try sample</button></article>
+              <article class="packet-case" data-heap-case="missing"><code>TEMP=</code><small>5 bytes · missing value</small><fieldset><legend>Decision</legend><label><input type="radio" name="heap-missing" value="accept" /> Accept</label><label><input type="radio" name="heap-missing" value="reject" /> Reject</label></fieldset><button type="button" class="text-button" data-heap-load="TEMP=">Try sample</button></article>
+              <article class="packet-case" data-heap-case="unknown"><code>MODE=24</code><small>7 bytes · unknown field</small><fieldset><legend>Decision</legend><label><input type="radio" name="heap-unknown" value="accept" /> Accept</label><label><input type="radio" name="heap-unknown" value="reject" /> Reject</label></fieldset><button type="button" class="text-button" data-heap-load="MODE=24">Try sample</button></article>
+              <article class="packet-case" data-heap-case="long"><code>TEMP=2400</code><small>9 bytes · valid shape, over capacity</small><fieldset><legend>Decision</legend><label><input type="radio" name="heap-long" value="accept" /> Accept</label><label><input type="radio" name="heap-long" value="reject" /> Reject</label></fieldset><button type="button" class="text-button" data-heap-load="TEMP=2400">Try sample</button></article>
+            </div>
+            <div class="activity-actions"><button type="button" class="next-lab-button" id="heap-check-triage">Check classifications</button><p id="heap-triage-feedback" role="status" aria-live="polite">Your choices can be changed and checked again.</p></div>
+          </section>
+
+          <section class="quest-activity fuzz-activity" id="fuzz-investigation" hidden aria-labelledby="fuzz-investigation-title">
+            <div class="activity-heading"><div><span class="section-overline">Generated case set</span><h3 id="fuzz-investigation-title">Find the smallest failing input</h3></div><span class="activity-step">DETERMINISTIC MODEL</span></div>
+            <p class="activity-copy">The local teaching fuzzer varies input lengths around the buffer boundary. Inspect the cases, then select the shortest one that crosses it.</p>
+            <div class="fuzz-corpus" id="fuzz-corpus" aria-live="polite"><p>Run the fuzzer to generate its bounded case set.</p></div>
+            <button type="button" class="next-lab-button" id="fuzz-check-finding" disabled>Check selected case</button>
+            <label class="activity-label" for="fuzz-explanation">Explain why this is the smallest failure</label>
+            <textarea id="fuzz-explanation" rows="3" maxlength="240" placeholder="Describe how the input length relates to the buffer capacity." disabled></textarea>
+            <button type="button" class="text-button" id="fuzz-record-explanation" disabled>Record explanation</button>
+            <p id="fuzz-feedback" role="status" aria-live="polite">Your explanation will be saved with this local quest session.</p>
+            <div class="regression-save" id="fuzz-regression-save" hidden><b>Regression candidate ready</b><p id="fuzz-regression-copy">Keep the smallest failing input in the local regression set.</p><button type="button" class="next-lab-button" id="fuzz-keep-regression">Keep regression case</button></div>
+          </section>
+
+          <section class="quest-activity sanitizer-activity" id="sanitizer-evidence" hidden aria-labelledby="sanitizer-evidence-title">
+            <div class="activity-heading"><div><span class="section-overline">Evidence review</span><h3 id="sanitizer-evidence-title">Interpret the modeled access trace</h3></div><span class="activity-step">SIMULATED TRACE</span></div>
+            <p class="simulation-disclosure"><b>Teaching model only.</b> This trace is calculated from the sample and pseudocode below; no compiler, AddressSanitizer, or UndefinedBehaviorSanitizer ran.</p>
+            <pre class="sanitizer-code" id="sanitizer-case-code"></pre>
+            <dl class="trace-facts" id="sanitizer-trace-facts"></dl>
+            <div class="evidence-questions">
+              <label for="sanitizer-line-choice">Which source line performs the modeled access?</label>
+              <select id="sanitizer-line-choice"><option value="">Choose a line</option><option value="1">Line 1 · declare the buffer</option><option value="2">Line 2 · configure the check</option><option value="3">Line 3 · copy the input</option></select>
+              <label for="sanitizer-access-choice">What kind of access does the trace describe?</label>
+              <select id="sanitizer-access-choice"><option value="">Choose an access</option><option value="write">Write beyond the buffer</option><option value="read">Read from a released object</option><option value="arithmetic">Integer arithmetic overflow</option></select>
+              <label for="sanitizer-evidence-choice">Which evidence establishes the boundary crossing?</label>
+              <select id="sanitizer-evidence-choice"><option value="">Choose the evidence</option><option value="length">Input is longer than capacity; the first outside offset equals capacity</option><option value="address">The variable has a hexadecimal address</option><option value="status">The device card says the parser is ready</option></select>
+            </div>
+            <button type="button" class="next-lab-button" id="sanitizer-check-evidence">Check evidence</button>
+            <p id="sanitizer-evidence-feedback" role="status" aria-live="polite">Use the source line and byte counts to support your diagnosis.</p>
+            <details class="activity-hint"><summary>Need a hint?</summary><p>The access line is where the copy is called. Compare the input byte count with the last offset inside the buffer.</p></details>
+          </section>
+
+          <section class="quest-activity pointer-activity" id="pointer-activity" hidden aria-labelledby="pointer-activity-title">
+            <div class="activity-heading"><div><span class="section-overline">Typed pointer trace</span><h3 id="pointer-activity-title">Follow the address through an int array</h3></div><span class="activity-step">QUEST 04</span></div>
+            <p class="activity-copy">An <code>int*</code> starts at <code>0x2000</code>. Predict <code>ptr + 2</code>, then advance one element at a time. This model uses four-byte integers.</p>
+            <label class="activity-label" for="pointer-prediction">Where will <code>ptr + 2</code> point?</label>
+            <select id="pointer-prediction" class="activity-select"><option value="">Choose an array element</option><option value="0x2000">A · 0x2000</option><option value="0x2004">B · 0x2004</option><option value="0x2008">C · 0x2008</option></select>
+            <button type="button" class="next-lab-button" id="check-pointer-prediction">Check prediction</button>
+            <p id="pointer-feedback" role="status" aria-live="polite">Pointer arithmetic advances by the size of the pointed-to type.</p>
+            <div class="pointer-array" id="pointer-array" role="group" aria-label="Array and current simulated pointer"></div>
+            <div class="pointer-controls"><button type="button" class="text-button" id="pointer-confirm-target" disabled>Confirm this target</button><button type="button" class="next-lab-button" id="pointer-advance" disabled>Advance one int <span aria-hidden="true">→</span></button></div>
+            <p id="pointer-trace-status" role="status" aria-live="polite">Check your prediction to begin the trace.</p>
+            <div class="pointer-one-past" id="pointer-one-past" hidden><label class="activity-label" for="pointer-dereference-choice">The pointer is now one past the array. Can code dereference it?</label><select id="pointer-dereference-choice" class="activity-select"><option value="">Choose a conclusion</option><option value="yes">Yes, it points to a valid array element</option><option value="no">No, one-past may be formed but not dereferenced</option></select><button type="button" class="next-lab-button" id="check-pointer-dereference">Check conclusion</button></div>
+            <details class="activity-hint"><summary>Need a hint?</summary><p>Two int steps move eight bytes. A one-past pointer can mark the end, but it does not refer to an element you may read.</p></details>
+          </section>
+
+          <section class="quest-activity uaf-prediction" id="uaf-prediction-activity" hidden aria-labelledby="uaf-prediction-title">
+            <div class="activity-heading"><div><span class="section-overline">Before the timeline</span><h3 id="uaf-prediction-title">Predict what survives release</h3></div><span class="activity-step">QUEST 05</span></div>
+            <p class="activity-copy">A pointer stores an address. Predict its state after release, then what a later read might see if the same slot is reused.</p>
+            <div class="prediction-fields">
+              <label for="uaf-release-prediction">After release, the pointer…
+                <select id="uaf-release-prediction"><option value="">Choose a state</option><option value="null">becomes null automatically</option><option value="address">still contains the old address</option></select>
+              </label>
+              <label for="uaf-reuse-prediction">After that address is reused, a read…
+                <select id="uaf-reuse-prediction"><option value="">Choose an outcome</option><option value="old">must return the old object</option><option value="new">may observe the new object at that address</option></select>
+              </label>
+            </div>
+            <button type="button" class="next-lab-button" id="check-uaf-prediction">Record predictions</button>
+            <p id="uaf-prediction-feedback" role="status" aria-live="polite">The timeline will let you check these predictions step by step.</p>
+            <details class="activity-hint"><summary>Need a hint?</summary><p>Releasing an object ends its lifetime; it does not rewrite every copy of its address.</p></details>
+          </section>
+
+          <section class="quest-activity ownership-review" id="ownership-review" hidden aria-labelledby="ownership-review-title">
+            <div class="activity-heading"><div><span class="section-overline">Compare approaches</span><h3 id="ownership-review-title">A null check is local cleanup</h3></div><span class="activity-step">QUEST 05</span></div>
+            <p class="activity-copy">The simulator’s <code>CLEAR_POINTER</code> switch demonstrates one defense. Choose the practice that makes object ownership and lifetime clearer across a real C++ program.</p>
+            <label class="activity-label" for="ownership-choice">Which approach establishes a clearer owner?</label>
+            <select id="ownership-choice" class="activity-select"><option value="">Choose a practice</option><option value="clear">Set this raw pointer to null after release</option><option value="unique">Use one explicit owner such as std::unique_ptr</option></select>
+            <button type="button" class="next-lab-button" id="check-ownership-choice">Check ownership reasoning</button>
+            <p id="ownership-feedback" role="status" aria-live="polite">The local switch only models this pointer. Think about who owns the object in the wider program.</p>
+          </section>
+
+          <section class="quest-activity review-activity" id="patch-review-activity" hidden aria-labelledby="patch-review-title">
+            <div class="activity-heading"><div><span class="section-overline">Patch review</span><h3 id="patch-review-title">Test the fix that looks safe</h3></div><span class="activity-step">QUEST 08</span></div>
+            <p class="activity-copy">A parser accepts a declared length and a payload. The proposed patch checks only that the declaration is at most eight. Inspect what it misses before choosing the safer candidate.</p>
+            <div class="review-code-grid">
+              <pre><b>Vulnerable parser</b>
+copy_bytes(buffer, payload, declared);</pre>
+              <pre><b>Candidate A · incomplete</b>
+if (declared &lt;= 8)
+    copy_bytes(buffer, payload, declared);</pre>
+              <pre><b>Candidate B · compare both lengths</b>
+if (declared &lt;= 8 &amp;&amp; declared == payload_bytes)
+    copy_bytes(buffer, payload, declared);</pre>
+            </div>
+            <p class="simulation-disclosure"><b>Bounded review model.</b> The cases below are evaluated by local teaching rules; no parser is compiled or executed.</p>
+            <p class="activity-copy">Choose a regression input that could expose Candidate A’s gap.</p>
+            <div class="review-tests" id="review-test-choices" role="group" aria-label="Choose a test for candidate A"><button type="button" data-review-test="valid">declared 3, payload 3 · ABC</button><button type="button" data-review-test="mismatch">declared 8, payload 3 · ABC</button><button type="button" data-review-test="too-large">declared 9, payload 9 · ABCDEFGHI</button></div>
+            <button type="button" class="next-lab-button" id="run-review-test" disabled>Run selected review test</button>
+            <p id="review-test-feedback" role="status" aria-live="polite">Select a test, predict Candidate A’s result, then run it in the bounded review model.</p>
+            <div class="review-final-check" id="review-final-check" hidden>
+              <label class="activity-label" for="review-fix-choice">Which patch should the review accept?</label>
+              <select id="review-fix-choice" class="activity-select"><option value="">Choose a candidate</option><option value="a">Candidate A · size limit only</option><option value="b">Candidate B · size and declared/payload match</option></select>
+              <button type="button" class="next-lab-button" id="check-review-fix">Verify review decision</button>
+              <p id="review-fix-feedback" role="status" aria-live="polite">A complete review checks boundary conditions and whether the length claim matches the actual payload.</p>
+            </div>
+            <details class="activity-hint"><summary>Need a hint?</summary><p>Candidate A trusts the header. Try a packet whose declared length and actual payload length disagree while both remain within capacity.</p></details>
           </section>
 
           <section class="quiz-workbench" id="quiz-workbench" aria-label="Quest question">
-            <div class="quiz-heading"><span class="workbench-label" id="quiz-category">MEMORY MAP</span><span class="quiz-count" id="quiz-count">QUESTION 1 / 1</span></div>
-            <h3 id="quiz-question">How many byte boxes does one char use?</h3>
-            <div class="quiz-options" id="quiz-options"></div>
-            <p class="quiz-feedback" id="quiz-feedback" role="status" aria-live="polite" hidden></p>
-            <button class="run-button quiz-next" id="quiz-next" type="button" hidden><span>Claim quest key</span><span aria-hidden="true">→</span></button>
-          </section>
-
-          <section class="quiz-workbench" id="quiz-workbench" aria-label="Quest question" hidden>
-            <div class="quiz-heading"><span class="workbench-label" id="quiz-category">MEMORY MAP</span><span class="quiz-count" id="quiz-count">QUESTION 1 / 1</span></div>
+            <div class="quiz-heading"><span class="workbench-label" id="quiz-category">Memory map</span><span class="quiz-count" id="quiz-count">QUESTION 1 / 1</span></div>
             <h3 id="quiz-question">How many byte boxes does one char use?</h3>
             <div class="quiz-options" id="quiz-options"></div>
             <p class="quiz-feedback" id="quiz-feedback" role="status" aria-live="polite" hidden></p>
@@ -79,40 +266,89 @@
           </section>
 
           <article class="workbench" id="byte-workbench" aria-label="Interactive memory-safety simulation" hidden>
-            <div class="workbench-topline"><div><span class="workbench-label" id="tool-heading">RUN THE EXAMPLE</span><span class="workbench-subtitle" id="tool-subtitle">The example is ready. You can change it.</span></div><span class="mode-indicator mode-vulnerable" id="mode-indicator"><span class="mode-dot"></span><span id="mode-label">VULNERABLE</span></span></div>
-            <details class="code-details" id="code-details">
-              <summary><span><b class="code-summary-icon" aria-hidden="true">{ }</b> Code editor <small>open when you are ready to patch</small></span><span class="code-summary-status" id="code-summary-status">Vulnerable version</span></summary>
-              <div class="code-editor-wrap"><div class="code-gutter" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div><label class="visually-hidden" for="code-editor">Edit the safe pseudocode settings for this simulation</label><textarea id="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="code-help"></textarea></div>
-              <div class="code-underbar"><span id="code-help">To patch this quest, change CHECK_LENGTH = false to true.</span><span class="code-safe">SAFE EDITOR</span></div>
-            </details>
-            <div class="input-section">
-              <div class="input-heading"><label for="payload-input" id="input-label">Example input</label><span id="byte-count" class="byte-count">9 BYTES</span></div>
-              <p class="input-help" id="input-help">The buffer holds 8 bytes. This example is one byte longer.</p>
-              <div class="input-control"><input id="payload-input" type="text" maxlength="32" placeholder="Example input" autocomplete="off" autocapitalize="off" spellcheck="false" /><button class="run-button" id="run-button" type="button"><span>Run example</span><span aria-hidden="true">→</span></button></div>
-              <details class="advanced-tools"><summary>Try a different input <span>optional</span></summary><div class="payload-actions"><button type="button" class="quick-fill" id="fill-edge">Fill to buffer limit</button><button type="button" class="quick-fill" id="fill-overflow">Add one extra byte</button><button type="button" class="text-button" id="clear-button">Reset example</button></div><p>ASCII characters use one byte; other text is counted as UTF-8.</p></details>
+            <div class="workbench-topline"><div><span class="workbench-label" id="tool-heading">Run the example</span><span class="workbench-subtitle" id="tool-subtitle">The example is ready. You can change it.</span></div><span class="mode-indicator mode-vulnerable" id="mode-indicator"><span class="mode-dot"></span><span id="mode-label">VULNERABLE</span></span></div>
+            <div class="lab-controls">
+              <details class="code-details" id="code-details">
+                <summary><span><b class="code-summary-icon" aria-hidden="true">{ }</b> Code editor <small>open when you are ready to patch</small></span><span class="code-summary-status" id="code-summary-status">Vulnerable version</span></summary>
+                <div class="code-editor-wrap"><div class="code-gutter" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div><label class="visually-hidden" for="code-editor">Edit the safe pseudocode settings for this simulation</label><textarea id="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="code-help"></textarea></div>
+                <div class="code-underbar"><span id="code-help">To patch this quest, change CHECK_LENGTH = false to true.</span><span class="code-safe">SAFE EDITOR</span></div>
+              </details>
+              <div class="input-section">
+                <div class="input-heading"><label for="payload-input" id="input-label">Example input</label><span id="byte-count" class="byte-count">9 BYTES</span></div>
+                <p class="input-help" id="input-help">The buffer holds 8 bytes. This example is one byte longer.</p>
+                <p class="run-stale" id="run-stale" hidden>The input or code changed after this run. Run it again to refresh the result.</p>
+                <div class="input-control"><input id="payload-input" type="text" maxlength="32" placeholder="Example input" autocomplete="off" autocapitalize="off" spellcheck="false" /><button class="run-button" id="run-button" type="button"><span>Run example</span><span aria-hidden="true">→</span></button></div>
+                <details class="advanced-tools"><summary>Try a different input <span>optional</span></summary><div class="payload-actions"><button type="button" class="quick-fill" id="fill-edge">Fill to buffer limit</button><button type="button" class="quick-fill" id="fill-overflow">Add one extra byte</button><button type="button" class="text-button" id="clear-button">Reset example</button></div><p>ASCII characters use one byte; other text is counted as UTF-8.</p></details>
+                <details class="verification-panel" id="verification-panel" hidden>
+                  <summary>Run simulated test cases <span>local model</span></summary>
+                  <p class="verification-intro">These cases use the same bounded simulator as the example above. They do not compile or run C/C++.</p>
+                  <ol class="verification-list" id="verification-list"></ol>
+                  <div class="verification-footer"><p id="verification-summary" role="status" aria-live="polite">Tests have not run.</p><button type="button" class="run-tests-button" id="run-verification-tests">Run 4 tests</button></div>
+                </details>
+              </div>
             </div>
-            <div class="result-box result-idle" id="result-box" role="status" aria-live="polite" hidden><span class="result-icon" id="result-icon" aria-hidden="true">•</span><div class="result-copy"><span class="result-eyebrow" id="result-eyebrow">RESULT</span><p id="result-message">Run an input to see what happens.</p></div><span class="result-tag" id="result-tag"></span></div>
-            <section class="memory-section" id="memory-section" aria-labelledby="memory-heading" hidden><div class="section-heading-row"><div><span class="section-overline">INSPECT THE RESULT</span><h3 id="memory-heading">Find the byte that crossed the edge</h3><p class="memory-instructions">The green boxes are the buffer. The boxes after the divider belong to the next value.</p></div><div class="address-key"><span class="key-buffer"></span> Buffer <span class="key-neighbor"></span> Next value</div></div><div class="memory-groups" id="memory-map" aria-live="polite"></div><p class="memory-caption" id="memory-caption-text">This is a teaching model; real memory layouts vary.</p></section>
+            <div class="lab-output" aria-label="Simulation result and memory map">
+              <div class="result-box result-idle" id="result-box" role="status" aria-live="polite" hidden><span class="result-icon" id="result-icon" aria-hidden="true">•</span><div class="result-copy"><span class="result-eyebrow" id="result-eyebrow">Result</span><p id="result-message">Run an input to see what happens.</p></div><span class="result-tag" id="result-tag"></span></div>
+              <section class="memory-section" id="memory-section" aria-labelledby="memory-heading" hidden><div class="section-heading-row"><div><span class="section-overline">Inspect the result</span><h3 id="memory-heading">Find the byte that crossed the edge</h3><p class="memory-instructions">Step through the writes. If a byte crosses the edge, select the changed simulated neighbor cell.</p><p class="memory-capacity-label" id="memory-capacity-label">Valid buffer capacity</p></div><div class="address-key"><span class="key-buffer"></span> Buffer <span class="key-neighbor"></span> Simulated neighbor</div></div><div class="memory-groups" id="memory-map"></div><div class="memory-controls" id="memory-controls"><button type="button" class="memory-step-button" id="memory-previous" aria-label="Show previous memory step">← Previous</button><span class="memory-frame-status" id="memory-frame-status" role="status" aria-live="polite">Initial memory</span><button type="button" class="memory-step-button" id="memory-next" aria-label="Show next memory step">Next →</button><button type="button" class="text-button" id="memory-replay">Replay copy</button><button type="button" class="text-button" id="memory-reset-view">Reset view</button></div><p class="memory-inspection-message" id="memory-inspection-message" role="status" aria-live="polite">Step through the result to see whether any bytes crossed the boundary.</p><p class="memory-caption" id="memory-caption-text">The layout is simplified so the boundary is easy to see.</p></section>
+              <div class="workspace-empty" aria-live="off"><span class="empty-index" aria-hidden="true">01</span><div><h3>Run the example to see the memory map</h3><p>The result and byte map will appear here. Nothing on this screen connects to a real device.</p></div></div>
+            </div>
           </article>
 
           <section class="uaf-workbench" id="uaf-workbench" hidden aria-label="Stale pointer timeline simulation">
-            <div class="workbench-topline"><div><span class="workbench-label">FOLLOW THE POINTER</span><span class="workbench-subtitle">Move through one event at a time.</span></div><span class="mode-indicator mode-vulnerable" id="uaf-mode-indicator"><span class="mode-dot"></span><span id="uaf-mode-label">VULNERABLE</span></span></div>
+            <div class="workbench-topline"><div><span class="workbench-label">Follow the pointer</span><span class="workbench-subtitle">Move through one event at a time.</span></div><span class="mode-indicator mode-vulnerable" id="uaf-mode-indicator"><span class="mode-dot"></span><span id="uaf-mode-label">VULNERABLE</span></span></div>
             <details class="code-details" id="uaf-code-details"><summary><span><b class="code-summary-icon" aria-hidden="true">{ }</b> Code editor <small>open when you are ready to patch</small></span><span class="code-summary-status" id="uaf-code-summary-status">Vulnerable version</span></summary><div class="code-editor-wrap"><div class="code-gutter" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span></div><label class="visually-hidden" for="uaf-code-editor">Edit the safe pseudocode settings for the pointer simulation</label><textarea id="uaf-code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="uaf-code-help"></textarea></div><div class="code-underbar"><span id="uaf-code-help">To patch this quest, change CLEAR_POINTER = false to true.</span><span class="code-safe">SAFE EDITOR</span></div></details>
             <div class="timeline-track" id="uaf-timeline"></div><div class="pointer-visual" id="pointer-visual" hidden></div>
-            <div class="timeline-controls"><button type="button" class="text-button" id="uaf-reset">Reset timeline</button><button type="button" class="run-button" id="uaf-next"><span>Start timeline</span><span aria-hidden="true">→</span></button></div>
+            <div class="timeline-controls"><button type="button" class="text-button" id="uaf-reset">Reset timeline</button><button type="button" class="text-button" id="uaf-previous" disabled>← Previous</button><button type="button" class="run-button" id="uaf-next"><span>Start timeline</span><span aria-hidden="true">→</span></button></div>
+            <button type="button" class="text-button uaf-inspect-button" id="uaf-mark-inspected" hidden>I understand the stale read</button>
             <p id="uaf-instruction" class="visually-hidden">Step through each event to see what the saved pointer refers to.</p>
-            <div class="result-box result-idle" id="uaf-result" role="status" aria-live="polite" hidden><span class="result-icon" id="uaf-result-icon" aria-hidden="true">•</span><div class="result-copy"><span class="result-eyebrow" id="uaf-result-eyebrow">RESULT</span><p id="uaf-result-message">Start the timeline to follow the pointer.</p></div><span class="result-tag" id="uaf-result-tag"></span></div>
+            <div class="result-box result-idle" id="uaf-result" role="status" aria-live="polite" hidden><span class="result-icon" id="uaf-result-icon" aria-hidden="true">•</span><div class="result-copy"><span class="result-eyebrow" id="uaf-result-eyebrow">Result</span><p id="uaf-result-message">Start the timeline to follow the pointer.</p></div><span class="result-tag" id="uaf-result-tag"></span></div>
           </section>
 
-          <div class="device-card" id="device-card" aria-label="Simulated system state" hidden><span class="device-label">SIMULATED SYSTEM</span><b id="device-name">Archive access</b><span class="device-status status-safe" id="device-status"><i></i><span>SECURE</span></span><span class="device-detail" id="device-detail">STATE: SAFE</span></div>
+          <div class="device-card" id="device-card" aria-label="Simulated system state" hidden><span class="device-label">Simulated system</span><b id="device-name">Archive access</b><span class="device-status status-safe" id="device-status"><i></i><span>SECURE</span></span><span class="device-detail" id="device-detail">STATE: SAFE</span></div>
 
           <div class="mission-complete-banner" id="mission-complete-banner" hidden><span class="complete-check" aria-hidden="true">✓</span><span><b id="complete-title">Quest cleared</b><small id="complete-copy">You found the bug and verified the fix.</small></span><button type="button" class="next-lab-button" id="next-lab-button">Continue <span aria-hidden="true">→</span></button></div>
 
-          <details class="learning-notes"><summary>Field notes <span>Read after the quest</span></summary><div><h3 id="notice-title">Memory is arranged in byte-sized boxes.</h3><p id="notice-copy">Each box has an address. Variables can sit next to one another.</p><p class="takeaway"><b>Keeper's note:</b> <span id="takeaway-copy">Stay inside the memory your code owns.</span></p></div></details>
-        </section>
+          <details class="learning-notes" id="learning-notes"><summary>Field notes <span>Read after the quest</span></summary><div><h3 id="notice-title">Memory is arranged in byte-sized boxes.</h3><p id="notice-copy">Each box has an address. Variables can sit next to one another.</p><p class="takeaway"><b>Keeper's note:</b> <span id="takeaway-copy">Stay inside the memory your code owns.</span></p></div></details>
+          </section>
+        </div>
 
-        <footer class="page-footer"><span>THE BYTEBOUND ARCHIVE · MEMORY KEEPER CAMPAIGN</span><span>SIMULATED ONLY · NO DEVICE OR NETWORK ACCESS</span></footer>
+        <footer class="page-footer"><span>The Bytebound Archive · Memory Keeper campaign</span><span>Simulated only · no device or network access</span></footer>
       </main>
     </div>
+    <div class="presentation-exit-wrap" id="presentation-exit-wrap" hidden><button type="button" id="presentation-exit">Exit presentation view <span aria-hidden="true">Esc</span></button></div>
+
+    <dialog class="challenge-dialog" id="challenge-dialog" aria-labelledby="challenge-title" aria-describedby="challenge-description">
+      <div class="challenge-dialog-head"><div><span class="panel-kicker">Optional workshop challenge · Quest 02</span><h2 id="challenge-title">Secure the smart lock</h2></div><button type="button" class="dialog-close" id="challenge-close" aria-label="Close challenge">×</button></div>
+      <p id="challenge-description" class="challenge-description">Fix the eight-byte input check. Keep a valid eight-byte name working, reject nine bytes, then explain why the boundary check matters.</p>
+      <div class="challenge-status-row"><span class="challenge-local-label">LOCAL CHALLENGE · NO SHARED LEADERBOARD</span><span class="challenge-timer" id="challenge-timer" aria-live="off">Timer off</span></div>
+      <div class="challenge-body">
+        <section class="challenge-editor-section" aria-labelledby="challenge-code-heading">
+          <div class="challenge-section-heading"><h3 id="challenge-code-heading">1. Patch the pseudocode</h3><span>SAFE SIMULATION</span></div>
+          <label class="visually-hidden" for="challenge-code">Edit simulated safety-check pseudocode</label>
+          <textarea id="challenge-code" spellcheck="false" autocomplete="off" autocapitalize="off">char username[8];
+CHECK_LENGTH = false;
+copy_bytes(username, input);</textarea>
+          <label class="challenge-input-label" for="challenge-input">Challenge input <span>Default: one byte too long</span></label>
+          <input id="challenge-input" type="text" maxlength="32" value="AAAAAAAAA" autocomplete="off" autocapitalize="off" spellcheck="false" />
+          <button type="button" class="run-button challenge-run" id="challenge-run">Run challenge tests <span aria-hidden="true">→</span></button>
+          <p class="challenge-test-summary" id="challenge-test-summary" role="status" aria-live="polite">Tests have not run.</p>
+          <ol class="challenge-test-list" id="challenge-test-list" aria-live="polite"></ol>
+        </section>
+        <section class="challenge-reason-section" aria-labelledby="challenge-reason-heading">
+          <div class="challenge-section-heading"><h3 id="challenge-reason-heading">2. Show your reasoning</h3><span>ONE CHOICE</span></div>
+          <p>Why should the program check the input length before copying it?</p>
+          <div class="challenge-reasons" id="challenge-reasons">
+            <button type="button" data-challenge-reason="wrong">It makes the program use less memory in every case.</button>
+            <button type="button" data-challenge-reason="correct">It rejects oversized input before the write can cross the buffer boundary.</button>
+            <button type="button" data-challenge-reason="wrong">It guarantees adjacent variables always have a fixed order.</button>
+          </div>
+          <p class="challenge-reason-feedback" id="challenge-reason-feedback" role="status" aria-live="polite">Choose the explanation that matches the simulator.</p>
+          <details class="challenge-hints"><summary>Need a hint? <span id="challenge-hint-count">0 of 3</span></summary><p id="challenge-hint-copy">Hints reveal one at a time.</p><button type="button" class="text-button" id="challenge-next-hint">Reveal first hint</button></details>
+        </section>
+      </div>
+      <div class="challenge-completion" id="challenge-completion" hidden role="status" aria-live="polite"><span class="complete-check" aria-hidden="true">✓</span><div><b id="challenge-completion-title">Challenge complete</b><p id="challenge-completion-copy"></p></div></div>
+      <div class="challenge-footer"><p id="challenge-local-copy">Results are saved only in this browser. Time is informational and does not affect completion.</p><div><button type="button" class="text-button" id="challenge-restart">Restart attempt</button><button type="button" class="next-lab-button" id="challenge-done">Done</button></div></div>
+      <details class="challenge-history"><summary>Recent local completions</summary><ol id="challenge-history-list"></ol><p>Visible only on this device and browser profile.</p></details>
+    </dialog>
   </body>
 </html>
