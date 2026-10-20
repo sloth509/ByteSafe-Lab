@@ -32,6 +32,7 @@ Each quest gives participants one immediate action. Questions can be retried wit
 - The optional event challenge uses the eight-byte stack exercise. It validates a valid input, an exact-boundary input, the participant's oversized input, and a short reasoning question. Hints are progressive, and the optional facilitator-controlled timer never blocks completion.
 - Challenge completions and elapsed times are saved in browser storage for the active browser profile only. There is no account, shared leaderboard, or cross-device synchronization.
 - Facilitators can switch to a presentation view to enlarge the current exercise. It only changes the facilitator's current browser tab.
+- The app selects participant or facilitator UI from exact hostnames configured in the early bootstrap in `index.html`; query parameters do not select a view. Add the participant and facilitator deployment hostnames to their respective lists. Unlisted hosts default to participant view. Hostname selection only chooses the interface. Vercel Deployment Protection must protect the facilitator deployment; the browser-side check is not authentication.
 - Dark mode is the first-visit default. An explicit light-mode choice is saved and retained on later visits.
 
 ## Run locally
