@@ -19,7 +19,7 @@ Each quest gives participants one immediate action. Questions can be retried wit
 
 - Student-entered text is treated as data. The editor does not compile, execute, or evaluate it; it recognizes only a buffer declaration and the `CHECK_LENGTH` or `CLEAR_POINTER` setting.
 - Memory, pointer, parser, fuzzer, and sanitizer behavior are deterministic teaching simulations. The miniature fuzzer checks a small set of input lengths; it is not a production fuzzing tool. Sanitizer reports are examples, not compiler output.
-- The app makes no device connections or external API calls. It has no account, room code, analytics, or backend. Quest progress uses session storage; theme, motion, and local challenge results use browser storage.
+- The app makes no device connections or external API calls. It has no account, room code, analytics, or backend. Quest progress uses session storage; theme and local challenge results use browser storage. Animations follow the browser's reduced-motion preference.
 - Real C/C++ memory layouts and behavior vary by compiler and system. The visual memory map intentionally simplifies them to explain boundaries.
 - Facilitator controls affect only the current browser tab. Students can play independently; this static version does not synchronize a classroom session.
 - The byte map replays writes in the local teaching model, and its boundary tests call the same deterministic simulator as the example. A passing result does not mean student code was compiled or executed.

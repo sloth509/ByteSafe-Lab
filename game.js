@@ -2384,30 +2384,16 @@
   });
   applyTheme(savedThemePreference() === 'light' ? 'light' : 'dark');
 
-  const motionToggle = $('#motion-toggle');
   const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  function savedMotionPreference() {
-    try { return window.localStorage.getItem('bytesafe-motion'); }
-    catch { return null; }
-  }
-  let motionEnabled = savedMotionPreference() === 'on' ? true : savedMotionPreference() === 'off' ? false : !reducedMotionQuery.matches;
+  let motionEnabled = !reducedMotionQuery.matches;
   function applyMotionPreference() {
     document.body.classList.toggle('motion-off', !motionEnabled);
     document.body.classList.toggle('motion-on', motionEnabled);
-    motionToggle.setAttribute('aria-pressed', String(motionEnabled));
-    $('#motion-label').textContent = motionEnabled ? 'Motion on' : 'Motion off';
   }
-  motionToggle.addEventListener('click', () => {
-    motionEnabled = !motionEnabled;
-    try { window.localStorage.setItem('bytesafe-motion', motionEnabled ? 'on' : 'off'); } catch { /* Preference stays in memory if storage is unavailable. */ }
-    applyMotionPreference();
-  });
   if (typeof reducedMotionQuery.addEventListener === 'function') {
     reducedMotionQuery.addEventListener('change', (event) => {
-      if (savedMotionPreference() === null) {
-        motionEnabled = !event.matches;
-        applyMotionPreference();
-      }
+      motionEnabled = !event.matches;
+      applyMotionPreference();
     });
   }
 
@@ -2432,9 +2418,6 @@
     void cursorBurst.offsetWidth;
     cursorBurst.classList.add('is-active');
   }, { passive: true });
-  motionToggle.addEventListener('click', () => {
-    if (!motionEnabled || reducedMotionQuery.matches) cursorBurst.classList.remove('is-active');
-  });
   if (typeof reducedMotionQuery.addEventListener === 'function') {
     reducedMotionQuery.addEventListener('change', (event) => {
       if (event.matches) cursorBurst.classList.remove('is-active');
